@@ -7,34 +7,13 @@ import {
   esquemaCrearAnimal,
   esquemaEditarAnimal,
   esquemaMovimiento,
+  type AnimalNuevo,
 } from "@/lib/validaciones/animales";
 import { ETIQUETA_TIPO_MOVIMIENTO } from "@/lib/etiquetas";
-import type { EstadoReproductivo, Especie, OrigenAnimal, Sexo } from "@/generated/prisma/enums";
+
+export type { AnimalNuevo };
 
 type Lector = Pick<Tx, "animal" | "toro" | "lote" | "potrero" | "raza">;
-
-/** Datos de un animal nuevo ya validados (formulario o fila de Excel). */
-export interface AnimalNuevo {
-  numero: string;
-  nombre: string | null;
-  especie: Especie;
-  sexo: Sexo;
-  razaId: string | null;
-  fechaNacimiento: Date | null;
-  fechaNacimientoEstimada: boolean;
-  origen: OrigenAnimal;
-  fechaIngreso: Date;
-  pesoNacimientoKg: string | null;
-  madreId: string | null;
-  padreId: string | null;
-  loteId: string | null;
-  potreroId: string | null;
-  observaciones: string | null;
-  estadoReproductivo: EstadoReproductivo | null;
-  numeroPartos: number;
-  enProduccion: boolean;
-  valorCompra: string | null;
-}
 
 /**
  * Reglas que necesitan la base de datos. Devuelve los errores por campo (vacío si todo

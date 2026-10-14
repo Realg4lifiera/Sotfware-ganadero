@@ -52,7 +52,7 @@ describe("esquemaDesdeCampos", () => {
     expect(r.success).toBe(false);
     const msj = Object.fromEntries(r.error!.issues.map((i) => [i.path[0], i.message]));
     expect(msj).toMatchObject({
-      nombre: "Nombre es obligatorio.",
+      nombre: "Este dato es obligatorio.",
       area: "Debe ser mayor o igual a 0.",
       orden: "Debe ser un número entero.",
       tipo: "Opción no válida.",

@@ -44,7 +44,7 @@ const vacio = (v: unknown) =>
   v === undefined || v === null || (typeof v === "string" && v.trim() === "");
 
 function esquemaCampo(c: DefCampo): z.ZodType {
-  const requerido = `${c.etiqueta} es obligatorio.`;
+  const requerido = "Este dato es obligatorio.";
   switch (c.tipo) {
     case "booleano":
       return z.boolean().default(false);

@@ -4,6 +4,7 @@
  * lib/servicios/animales.ts.
  */
 import { z } from "zod";
+import type { EstadoReproductivo, Especie, OrigenAnimal, Sexo } from "@/generated/prisma/enums";
 import { esquemaDesdeCampos, type DefCampo } from "@/lib/formularios/campos";
 import { hoy } from "@/lib/fechas";
 import { parsearNumeroCO } from "@/lib/formato";
@@ -96,6 +97,29 @@ export const CAMPOS_ANIMAL_CREACION: DefCampo[] = [
   },
   { nombre: "valorCompra", etiqueta: "Valor de compra", tipo: "decimal", min: 0, sufijo: "COP" },
 ];
+
+/** Datos de un animal nuevo ya validados (formulario o fila de Excel). */
+export interface AnimalNuevo {
+  numero: string;
+  nombre: string | null;
+  especie: Especie;
+  sexo: Sexo;
+  razaId: string | null;
+  fechaNacimiento: Date | null;
+  fechaNacimientoEstimada: boolean;
+  origen: OrigenAnimal;
+  fechaIngreso: Date;
+  pesoNacimientoKg: string | null;
+  madreId: string | null;
+  padreId: string | null;
+  loteId: string | null;
+  potreroId: string | null;
+  observaciones: string | null;
+  estadoReproductivo: EstadoReproductivo | null;
+  numeroPartos: number;
+  enProduccion: boolean;
+  valorCompra: string | null;
+}
 
 type Datos = Record<string, unknown>;
 
