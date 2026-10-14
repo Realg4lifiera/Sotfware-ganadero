@@ -113,7 +113,11 @@ export async function crearCatalogosBase(prisma: PrismaClient) {
   const razas = new Map((await prisma.raza.findMany()).map((r) => [r.nombre, r.id]));
 
   await prisma.centroCosto.createMany({
-    data: CENTROS_COSTO.map(([nombre, descripcion]) => ({ nombre, descripcion })),
+    data: CENTROS_COSTO.map(([nombre, descripcion]) => ({
+      nombre,
+      descripcion,
+      clave: nombre === "Lechería" ? "LECHERIA" : null,
+    })),
   });
   const centros = new Map((await prisma.centroCosto.findMany()).map((c) => [c.nombre, c.id]));
 

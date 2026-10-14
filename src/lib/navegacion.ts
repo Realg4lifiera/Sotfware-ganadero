@@ -202,6 +202,7 @@ export const NAVEGACION: SeccionNav[] = [
         href: "/costos/indicadores",
         icono: "indicador",
         permisos: ["costos:leer"],
+        estado: "lista",
         descripcion: "Costo por litro, por kilo ganado y por animal/día.",
         alcance: [
           "Costo por litro producido y por litro vendido",
@@ -417,6 +418,7 @@ export const NAVEGACION: SeccionNav[] = [
         href: "/reportes/informe-productor",
         icono: "informe",
         permisos: ["reportes:costos"],
+        estado: "lista",
         descripcion: "Informe mensual de costos estilo Colanta.",
         alcance: [
           "Rubros con total, $/L y % de participación",

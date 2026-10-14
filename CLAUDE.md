@@ -195,10 +195,24 @@ configuración y catálogos, usuarios, animales (listado, ficha, foto, movimient
 vida, importación/exportación Excel), tablero con inventario real, máquina de estados
 reproductiva y de categorías (con pruebas), páginas "Próximamente" para todo el alcance.
 
-Siguiente: **Módulo 1 — Costos** (compras con IVA/descuento y soporte, nómina, gastos
-administrativos con período y prorrateo, activos y depreciación, ingresos, presupuesto,
-indicadores de costo e informe del productor). Las rutas ya existen en `src/app/(app)/costos`
-y su alcance está descrito en `lib/navegacion.ts`.
+Hecho (Módulo 1 — Costos): compras y gastos (IVA/descuento, soportes; IVA como costo
+configurable en Finca), nómina digitada a mano, gastos administrativos con período y reglas
+de prorrateo, activos y depreciación, ingresos, entregas y consumo interno de leche,
+presupuesto por categoría vs. ejecutado, indicadores de costo (12 meses) e informe del
+productor (pantalla + Excel); el tablero muestra litros y costo por litro del mes.
+
+- **Motor de costos** (`lib/dominio/motor-costos.ts`, puro): convierte compras, cuotas de
+  administrativos, nómina y depreciación en `LineaCosto` (rubro, categoría, centro). Lo
+  alimenta `lib/servicios/costos.ts` (`costosDelMes`, `informeDelMes`). Todo reporte de
+  costos debe salir de ahí.
+- Rubros que llena el sistema se reconocen por `RubroCosto.clave` (`MANO_OBRA`,
+  `DEPRECIACIONES`); el centro Lechería por `CentroCosto.clave = LECHERIA`.
+- Litros producidos = vendidos (entregas) + consumo interno. $/L de rubros sobre producidos.
+- Pendiente del módulo: costo por kilo ganado y por animal/día (requieren pesajes e
+  inventario histórico del Módulo 3).
+
+Siguiente: **Módulo 2 — Reproductivo** o **Módulo 3 — Productivo** (según prioridad del
+cliente).
 
 Notas para Módulo 2: el servicio reproductivo debe usar `aplicarEvento()` de
 `lib/dominio/reproduccion.ts` y aplicar sus efectos (estado, `numeroPartos`, abrir/cerrar

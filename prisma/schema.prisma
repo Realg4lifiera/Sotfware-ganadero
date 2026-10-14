@@ -444,6 +444,8 @@ model Auditoria {
 model CentroCosto {
   id          String    @id @default(cuid())
   nombre      String    @unique
+  /// Centro que el sistema reconoce: LECHERIA (costo por litro solo de lechería).
+  clave       String?   @unique
   descripcion String?
   activo      Boolean   @default(true)
   createdAt   DateTime  @default(now()) @db.Timestamptz(3)

@@ -1,24 +1,18 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { AlertTriangle, Beef, HeartPulse, Milk, Wallet } from "lucide-react";
-import { composicionHato, type FilaComposicion } from "@/lib/dominio/categoria";
-import { formatoNumero, formatoPorcentaje } from "@/lib/formato";
-import { formatoMes, hoy } from "@/lib/fechas";
+import { composicionHato } from "@/lib/dominio/categoria";
+import Link from "next/link";
+import { formatoCOP, formatoLitros, formatoNumero, formatoPorcentaje } from "@/lib/formato";
+import { formatoMes, hoy, mesActualISO, rangoMes } from "@/lib/fechas";
 import { puede } from "@/lib/permisos";
 import { requierePermiso } from "@/lib/sesion";
+import { informeDelMes } from "@/lib/servicios/costos";
 import { animalesConCategoria, obtenerConfiguracionFinca } from "@/lib/servicios/inventario";
+import { litrosDelPeriodo } from "@/lib/servicios/leche";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { EncabezadoPagina } from "@/components/layout/encabezado-pagina";
+import { TablaComposicion } from "@/components/tabla-composicion";
 
 export const metadata: Metadata = { title: "Tablero" };
 
@@ -58,76 +52,16 @@ function Indicador({
   );
 }
 
-function TablaComposicion({
-  titulo,
-  filas,
-  total,
-  conIdeal,
-}: {
-  titulo: string;
-  filas: FilaComposicion[];
-  total: number;
-  conIdeal: boolean;
-}) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>{titulo}</TableHead>
-          <TableHead className="text-right">Cantidad</TableHead>
-          <TableHead className="text-right">% actual</TableHead>
-          {conIdeal && <TableHead className="text-right">% ideal</TableHead>}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {filas.map((f) => {
-          const desviado =
-            conIdeal &&
-            f.porcentajeIdeal !== null &&
-            Math.abs(f.porcentajeReal - f.porcentajeIdeal) > 0.1;
-          return (
-            <TableRow key={f.categoria}>
-              <TableCell>
-                <Link
-                  href={`/animales?categoria=${f.categoria}`}
-                  className="hover:text-primary font-medium hover:underline"
-                >
-                  {f.etiqueta}
-                </Link>
-              </TableCell>
-              <TableCell className="text-right tabular-nums">{formatoNumero(f.cantidad)}</TableCell>
-              <TableCell className="text-right tabular-nums">
-                {formatoPorcentaje(f.porcentajeReal, 0)}
-              </TableCell>
-              {conIdeal && (
-                <TableCell className="text-right tabular-nums">
-                  <span
-                    className={desviado ? "text-warning font-semibold" : "text-muted-foreground"}
-                  >
-                    {formatoPorcentaje(f.porcentajeIdeal, 0)}
-                  </span>
-                </TableCell>
-              )}
-            </TableRow>
-          );
-        })}
-      </TableBody>
-      <TableFooter>
-        <TableRow>
-          <TableCell>Total</TableCell>
-          <TableCell className="text-right tabular-nums">{formatoNumero(total)}</TableCell>
-          <TableCell colSpan={conIdeal ? 2 : 1} />
-        </TableRow>
-      </TableFooter>
-    </Table>
-  );
-}
-
 export default async function Tablero() {
   const usuario = await requierePermiso("tablero:ver");
-  const [animales, config] = await Promise.all([
+  const verCostos = puede(usuario.rol, "costos:leer");
+  const mesISO = mesActualISO();
+  const { desde, hasta } = rangoMes(mesISO);
+  const [animales, config, litros, informe] = await Promise.all([
     animalesConCategoria(),
     obtenerConfiguracionFinca(),
+    litrosDelPeriodo(desde, hasta),
+    verCostos ? informeDelMes(mesISO) : null,
   ]);
   const categorias = animales.map((a) => a.categoria);
   const { hato, otras, totalHato, totalOtras } = composicionHato(categorias, config.hato);
@@ -143,7 +77,6 @@ export default async function Tablero() {
   const vacasPrenadas = prenadas.filter((a) => a.numeroPartos > 0).length;
   const novillasPrenadas = prenadas.length - vacasPrenadas;
   const mes = formatoMes(hoy());
-  const verCostos = puede(usuario.rol, "costos:leer");
 
   return (
     <>
@@ -168,15 +101,28 @@ export default async function Tablero() {
         <Indicador
           titulo={`Leche de ${mes.split(" ")[0]}`}
           icono={Milk}
-          valor="—"
-          pendiente={`${enProduccion} vacas en producción · litros con el módulo de producción`}
+          valor={formatoLitros(litros.producidos)}
+          detalle={`${formatoLitros(litros.vendidos)} vendidos · ${enProduccion} vacas en producción`}
         />
-        {verCostos ? (
+        {informe ? (
           <Indicador
             titulo="Costo por litro"
             icono={Wallet}
-            valor="—"
-            pendiente="Disponible con el módulo de costos"
+            valor={
+              informe.costoPorLitroProducido === null
+                ? "—"
+                : formatoCOP(Math.round(informe.costoPorLitroProducido))
+            }
+            pendiente={
+              informe.costoPorLitroProducido === null
+                ? "Sin litros registrados este mes"
+                : undefined
+            }
+            detalle={
+              <Link href="/reportes/informe-productor" className="hover:underline">
+                Litro producido · rentabilidad {formatoPorcentaje(informe.rentabilidad)}
+              </Link>
+            }
           />
         ) : (
           <Indicador

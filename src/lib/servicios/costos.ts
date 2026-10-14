@@ -1,8 +1,10 @@
 import "server-only";
 import { prismaBase } from "@/lib/db";
+import { informeProductor, type InformeProductor } from "@/lib/dominio/informe-productor";
 import { lineasDelMes, type EntradaCostos, type LineaCosto } from "@/lib/dominio/motor-costos";
 import { rangoMes } from "@/lib/fechas";
 import { obtenerConfiguracionFinca } from "@/lib/servicios/inventario";
+import { litrosDelPeriodo } from "@/lib/servicios/leche";
 
 const n = (x: { toString(): string } | null | undefined) => (x == null ? 0 : Number(x));
 
@@ -93,5 +95,33 @@ export function rubrosOrdenados() {
   return prismaBase.rubroCosto.findMany({
     where: { deletedAt: null },
     orderBy: [{ grupo: "asc" }, { orden: "asc" }, { nombre: "asc" }],
+  });
+}
+
+/** Informe del productor del mes ("AAAA-MM"). */
+export async function informeDelMes(mes: string): Promise<InformeProductor> {
+  const { desde, hasta } = rangoMes(mes);
+  const [rubros, lineas, lecheria, litros, ingresos] = await Promise.all([
+    rubrosOrdenados(),
+    costosDelMes(mes),
+    prismaBase.centroCosto.findFirst({
+      where: { clave: "LECHERIA", deletedAt: null },
+      select: { id: true },
+    }),
+    litrosDelPeriodo(desde, hasta),
+    prismaBase.ingreso.groupBy({
+      by: ["tipo"],
+      where: { deletedAt: null, fecha: { gte: desde, lt: hasta } },
+      _sum: { total: true },
+    }),
+  ]);
+  const leche = n(ingresos.find((i) => i.tipo === "VENTA_LECHE")?._sum.total);
+  const total = ingresos.reduce((s, i) => s + n(i._sum.total), 0);
+  return informeProductor({
+    rubros,
+    lineas,
+    centroLecheriaId: lecheria?.id ?? null,
+    litros: { producidos: litros.producidos, vendidos: litros.vendidos, consumo: litros.consumo },
+    ingresos: { leche, otros: Math.round((total - leche) * 100) / 100 },
   });
 }
