@@ -3,11 +3,15 @@ import path from "node:path";
 
 export default defineConfig({
   resolve: {
-    alias: { "@": path.resolve(import.meta.dirname, "src") },
+    alias: {
+      "@": path.resolve(import.meta.dirname, "src"),
+      "server-only": path.resolve(import.meta.dirname, "tests/stubs/server-only.ts"),
+    },
   },
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts", "src/**/*.test.ts"],
     env: { TZ: "UTC" },
+    setupFiles: ["dotenv/config"],
   },
 });

@@ -18,7 +18,8 @@
     "db:seed": "prisma db seed",
     "db:reset": "prisma migrate reset --force",
     "postinstall": "prisma generate",
-    "check": "npm run lint && npm run typecheck && npm run test"
+    "check": "npm run lint && npm run typecheck && npm run test",
+    "test:bd": "PRUEBAS_BD=1 vitest run"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",
@@ -28,16 +29,21 @@
     "@tanstack/react-table": "^8.21.3",
     "@vercel/blob": "^2.8.1",
     "bcryptjs": "^3.0.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "exceljs": "^4.4.0",
     "lucide-react": "^1.56.0",
     "next": "16.4.0",
     "next-auth": "5.0.0-beta.32",
     "pg": "^8.23.1",
+    "radix-ui": "^1.8.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-hook-form": "^7.90.0",
     "server-only": "^0.0.1",
+    "sonner": "^2.0.8",
+    "tailwind-merge": "^3.7.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {

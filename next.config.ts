@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
   },
   serverExternalPackages: ["exceljs"],
   experimental: {
+    // forbidden() / unauthorized() para rechazar accesos sin permiso.
+    authInterrupts: true,
     serverActions: {
       // Fotos de animales y archivos Excel de importación.
       bodySizeLimit: "10mb",
