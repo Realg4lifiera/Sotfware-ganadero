@@ -45,3 +45,6 @@ next-env.d.ts
 # archivos subidos en desarrollo (adaptador de almacenamiento local)
 /.almacenamiento
 !.env.example
+
+# grafo de graphify (se genera localmente)
+graphify-out/
