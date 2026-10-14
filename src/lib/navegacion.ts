@@ -137,6 +137,7 @@ export const NAVEGACION: SeccionNav[] = [
         href: "/costos/nomina",
         icono: "nomina",
         permisos: ["costos:leer"],
+        estado: "lista",
         descripcion: "Pagos de mano de obra por trabajador y reporte mensual.",
         alcance: [
           "Pagos: salario, auxilio de transporte, salud, pensión, ARL, prima, vacaciones, cesantías, intereses y bonificación",
