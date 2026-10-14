@@ -190,6 +190,7 @@ export const NAVEGACION: SeccionNav[] = [
         href: "/costos/presupuesto",
         icono: "presupuesto",
         permisos: ["costos:leer"],
+        estado: "lista",
         descripcion: "Presupuesto mensual por categoría y su ejecución.",
         alcance: [
           "Presupuesto por año, mes y categoría",

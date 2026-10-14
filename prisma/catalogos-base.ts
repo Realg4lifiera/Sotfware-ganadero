@@ -101,6 +101,12 @@ export const INSUMOS = [
   ["ACPM", "COMBUSTIBLE", "GALON", "Galón"],
 ] as const;
 
+/** Rubros que el sistema llena solo (ver RubroCosto.clave). */
+const CLAVES_RUBRO: Record<string, string> = {
+  "Mano de obra": "MANO_OBRA",
+  Depreciaciones: "DEPRECIACIONES",
+};
+
 /** Crea los catálogos base (BD vacía). Devuelve mapas nombre → id. */
 export async function crearCatalogosBase(prisma: PrismaClient) {
   await prisma.raza.createMany({ data: RAZAS.map((nombre) => ({ nombre })) });
@@ -112,7 +118,12 @@ export async function crearCatalogosBase(prisma: PrismaClient) {
   const centros = new Map((await prisma.centroCosto.findMany()).map((c) => [c.nombre, c.id]));
 
   await prisma.rubroCosto.createMany({
-    data: RUBROS.map(([nombre, grupo], orden) => ({ nombre, grupo, orden })),
+    data: RUBROS.map(([nombre, grupo], orden) => ({
+      nombre,
+      grupo,
+      orden,
+      clave: CLAVES_RUBRO[nombre] ?? null,
+    })),
   });
   const rubros = new Map((await prisma.rubroCosto.findMany()).map((r) => [r.nombre, r.id]));
   await prisma.categoriaGasto.createMany({

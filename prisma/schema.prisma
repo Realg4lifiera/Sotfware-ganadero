@@ -465,6 +465,8 @@ model CentroCosto {
 model RubroCosto {
   id          String     @id @default(cuid())
   nombre      String     @unique
+  /// Rubros que el sistema llena solo: MANO_OBRA (nómina) y DEPRECIACIONES (activos).
+  clave       String?    @unique
   grupo       GrupoCosto
   orden       Int        @default(0)
   activo      Boolean    @default(true)
