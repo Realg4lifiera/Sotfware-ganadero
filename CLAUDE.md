@@ -116,8 +116,8 @@ La matriz exacta está en `src/lib/permisos.ts`.
 
 Ternera lactante (< 8 meses) · Ternera (8–12 meses) · Novilla (≥ 12 meses sin partos) ·
 Vaca en producción (lactancia abierta) · Vaca seca (ya parió, sin lactancia abierta) ·
-Ternero (macho < 8 meses) · Macho levante/ceba (machos que no son toro) · Toro (macho
-registrado como `Toro`) · Otras especies (equinos, etc.).
+Macho levante/ceba (todo macho bovino que no es toro) · Toro (macho registrado como `Toro`) ·
+Otras especies (equinos, etc.). Reglas en `src/lib/dominio/categoria.ts`.
 
 ## Comandos
 

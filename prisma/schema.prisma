@@ -1,7 +1,16 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// Software Ganadero — esquema completo de datos (4 módulos).
+//
+// Convenciones:
+// - Toda entidad de negocio lleva createdAt, updatedAt, createdById, updatedById y deletedAt
+//   (borrado lógico). createdById/updatedById guardan el id del Usuario sin llave foránea; la
+//   trazabilidad completa está en Auditoria. La extensión de Prisma en src/lib/auditoria.ts
+//   los llena automáticamente.
+// - Dinero (COP): Decimal(16,2). Litros: Decimal(10,2). Kg: Decimal(8,2).
+//   Porcentajes: Decimal(5,2) (0–100). Cantidades de insumo: Decimal(12,3).
+// - Fechas de evento de un día: @db.Date. Instantes: @db.Timestamptz(3).
+// - Los identificadores de enum no admiten "Ñ": PRENADA = Preñada, MANANA = Mañana.
+// - Restricciones CHECK (animal XOR lote, toro/pajilla según tipo de servicio, etc.) están en
+//   SQL dentro de la migración inicial, porque Prisma no las modela.
 
 generator client {
   provider = "prisma-client"
@@ -10,4 +19,1195 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum Rol {
+  ADMIN
+  MAYORDOMO
+  VETERINARIO
+  CONTADOR
+}
+
+enum Especie {
+  BOVINO
+  EQUINO
+  OTRA
+}
+
+enum Sexo {
+  HEMBRA
+  MACHO
+}
+
+enum OrigenAnimal {
+  NACIDO
+  COMPRADO
+}
+
+enum EstadoAnimal {
+  ACTIVO
+  VENDIDO
+  MUERTO
+  DESCARTADO
+}
+
+enum EstadoReproductivo {
+  NOVILLA
+  VACIA
+  SERVIDA
+  PRENADA
+  SECA
+  PARIDA
+}
+
+enum TipoMovimientoAnimal {
+  COMPRA
+  VENTA
+  TRASLADO_LOTE
+  TRASLADO_POTRERO
+  MUERTE
+  DESCARTE
+}
+
+enum PropositoLote {
+  LECHERIA
+  CEBA
+  CRIA
+  LEVANTE
+  OTRO
+}
+
+enum AccionAuditoria {
+  CREAR
+  EDITAR
+  ELIMINAR
+}
+
+/// Agrupación del informe de costos (como el Excel "Costo de litro" de Colanta).
+enum GrupoCosto {
+  COSTO_FIJO
+  COSTO_VARIABLE
+  GASTO_EMPRESARIAL
+}
+
+enum TipoCategoriaGasto {
+  INSUMO
+  MANO_OBRA
+  INDIRECTO
+  OTRO
+}
+
+enum TipoInsumo {
+  ALIMENTO
+  SAL
+  SUPLEMENTO
+  MEDICAMENTO
+  SEMEN
+  FERTILIZANTE
+  COMBUSTIBLE
+  OTRO
+}
+
+enum UnidadMedida {
+  KG
+  G
+  L
+  ML
+  BULTO
+  UNIDAD
+  DOSIS
+  GALON
+}
+
+enum OrigenCompra {
+  COOPERATIVA
+  EXTERNA
+}
+
+enum TipoContrato {
+  CON_PRESTACIONES
+  SIN_PRESTACIONES
+}
+
+enum Periodicidad {
+  MENSUAL
+  BIMESTRAL
+  TRIMESTRAL
+  SEMESTRAL
+  ANUAL
+}
+
+enum TipoIngreso {
+  VENTA_LECHE
+  VENTA_ANIMAL
+  OTRO
+}
+
+enum TipoMovimientoPajilla {
+  ENTRADA
+  USO
+  AJUSTE
+}
+
+enum TipoServicio {
+  MONTA_NATURAL
+  INSEMINACION
+}
+
+enum MetodoDiagnostico {
+  PALPACION
+  ECOGRAFIA
+}
+
+enum ResultadoDiagnostico {
+  PRENADA
+  VACIA
+}
+
+enum TipoParto {
+  NORMAL
+  ASISTIDO
+}
+
+enum Jornada {
+  MANANA
+  TARDE
+  DIA
+}
+
+enum DestinoConsumoLeche {
+  TRABAJADORES
+  TERNERAS
+  RETIRO
+  ARRIENDO
+}
+
+enum MetodoPesaje {
+  BASCULA
+  CINTA
+}
+
+enum TipoEventoSanitario {
+  VACUNA
+  DESPARASITACION
+  TRATAMIENTO
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Base común
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Registro único (id = 1): una sola finca por instalación.
+model Finca {
+  id            Int      @id @default(1)
+  nombre        String
+  codigo        String? /// Código de proveedor (p. ej. Colanta)
+  propietario   String?
+  nit           String?
+  telefono      String?
+  departamento  String?
+  municipio     String?
+  vereda        String?
+  areaTotalHa   Decimal? @db.Decimal(10, 2)
+  areaUtilHa    Decimal? @db.Decimal(10, 2)
+  tipoOrdeno    String?
+  /// Reglas de categoría, % ideal del hato y otros parámetros (ver lib/dominio/categoria.ts).
+  configuracion Json     @default("{}")
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
+  createdById   String?
+  updatedById   String?
+}
+
+model Usuario {
+  id               String    @id @default(cuid())
+  nombre           String
+  usuario          String    @unique
+  email            String?   @unique
+  passwordHash     String
+  rol              Rol
+  activo           Boolean   @default(true)
+  debeCambiarClave Boolean   @default(false)
+  ultimoAcceso     DateTime? @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime  @updatedAt @db.Timestamptz(3)
+  createdById      String?
+  updatedById      String?
+
+  auditorias Auditoria[]
+}
+
+model Potrero {
+  id            String    @id @default(cuid())
+  nombre        String    @unique
+  areaHa        Decimal?  @db.Decimal(10, 2)
+  tipoPasto     String?
+  observaciones String?
+  activo        Boolean   @default(true)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  createdById   String?
+  updatedById   String?
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  animales           Animal[]
+  movimientosOrigen  MovimientoAnimal[] @relation("PotreroOrigen")
+  movimientosDestino MovimientoAnimal[] @relation("PotreroDestino")
+  ocupaciones        OcupacionPotrero[]
+}
+
+model Lote {
+  id          String        @id @default(cuid())
+  nombre      String        @unique
+  proposito   PropositoLote
+  descripcion String?
+  activo      Boolean       @default(true)
+  createdAt   DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @db.Timestamptz(3)
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime?     @db.Timestamptz(3)
+
+  animales           Animal[]
+  movimientosOrigen  MovimientoAnimal[]   @relation("LoteOrigen")
+  movimientosDestino MovimientoAnimal[]   @relation("LoteDestino")
+  gastos             Gasto[]
+  pagosNomina        PagoNomina[]
+  ordenos            RegistroOrdeno[]
+  pesajes            Pesaje[]
+  ocupaciones        OcupacionPotrero[]
+  suministros        SuministroAlimento[]
+  eventosSanitarios  EventoSanitario[]
+}
+
+model Raza {
+  id          String    @id @default(cuid())
+  nombre      String    @unique
+  activo      Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime? @db.Timestamptz(3)
+
+  animales Animal[]
+  toros    Toro[]
+  pajillas Pajilla[]
+}
+
+model Animal {
+  id                      String              @id @default(cuid())
+  /// Número de chapeta. Único global: no se reutiliza ni tras borrado lógico.
+  numero                  String              @unique
+  nombre                  String?
+  especie                 Especie             @default(BOVINO)
+  razaId                  String?
+  sexo                    Sexo
+  fechaNacimiento         DateTime?           @db.Date
+  fechaNacimientoEstimada Boolean             @default(false)
+  origen                  OrigenAnimal
+  fechaIngreso            DateTime            @db.Date
+  pesoNacimientoKg        Decimal?            @db.Decimal(8, 2)
+  madreId                 String?
+  padreId                 String? /// Toro (propio o externo/pajilla)
+  partoId                 String? /// Parto en que nació (si nació en la finca)
+  loteId                  String?
+  potreroId               String?
+  /// Clave del archivo de foto en el almacenamiento (lib/almacenamiento).
+  fotoClave               String?
+  estado                  EstadoAnimal        @default(ACTIVO)
+  /// Solo hembras bovinas. Lo cambia únicamente lib/dominio/reproduccion.ts.
+  estadoReproductivo      EstadoReproductivo?
+  /// Partos totales (incluye los anteriores a su ingreso al sistema). Lo mantiene el dominio.
+  numeroPartos            Int                 @default(0)
+  fechaSalida             DateTime?           @db.Date
+  observaciones           String?
+  createdAt               DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime            @updatedAt @db.Timestamptz(3)
+  createdById             String?
+  updatedById             String?
+  deletedAt               DateTime?           @db.Timestamptz(3)
+
+  raza    Raza?    @relation(fields: [razaId], references: [id])
+  madre   Animal?  @relation("MadreCrias", fields: [madreId], references: [id])
+  crias   Animal[] @relation("MadreCrias")
+  padre   Toro?    @relation("PadreCrias", fields: [padreId], references: [id])
+  parto   Parto?   @relation("PartoCrias", fields: [partoId], references: [id])
+  lote    Lote?    @relation(fields: [loteId], references: [id])
+  potrero Potrero? @relation(fields: [potreroId], references: [id])
+
+  toro                   Toro?
+  movimientos            MovimientoAnimal[]
+  gastos                 Gasto[]
+  ingresos               Ingreso[]
+  celos                  Celo[]
+  servicios              Servicio[]
+  diagnosticos           DiagnosticoPrenez[]
+  partos                 Parto[]                @relation("PartosMadre")
+  abortos                Aborto[]
+  secados                Secado[]
+  descartesReproductivos DescarteReproductivo[]
+  lactancias             Lactancia[]
+  ordenos                RegistroOrdeno[]
+  pesajes                Pesaje[]
+  eventosSanitarios      EventoSanitario[]
+
+  @@index([loteId])
+  @@index([potreroId])
+  @@index([estado])
+  @@index([madreId])
+  @@index([padreId])
+  @@index([nombre])
+}
+
+model MovimientoAnimal {
+  id               String               @id @default(cuid())
+  animalId         String
+  tipo             TipoMovimientoAnimal
+  fecha            DateTime             @db.Date
+  motivo           String?
+  loteOrigenId     String?
+  loteDestinoId    String?
+  potreroOrigenId  String?
+  potreroDestinoId String?
+  valor            Decimal?             @db.Decimal(16, 2)
+  pesoKg           Decimal?             @db.Decimal(8, 2)
+  compradorId      String?
+  proveedorId      String?
+  observaciones    String?
+  createdAt        DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime             @updatedAt @db.Timestamptz(3)
+  createdById      String?
+  updatedById      String?
+  deletedAt        DateTime?            @db.Timestamptz(3)
+
+  animal         Animal     @relation(fields: [animalId], references: [id])
+  loteOrigen     Lote?      @relation("LoteOrigen", fields: [loteOrigenId], references: [id])
+  loteDestino    Lote?      @relation("LoteDestino", fields: [loteDestinoId], references: [id])
+  potreroOrigen  Potrero?   @relation("PotreroOrigen", fields: [potreroOrigenId], references: [id])
+  potreroDestino Potrero?   @relation("PotreroDestino", fields: [potreroDestinoId], references: [id])
+  comprador      Comprador? @relation(fields: [compradorId], references: [id])
+  proveedor      Proveedor? @relation(fields: [proveedorId], references: [id])
+  ingreso        Ingreso?
+
+  @@index([animalId, fecha])
+  @@index([fecha])
+  @@index([tipo, fecha])
+}
+
+/// Archivo (foto o PDF) asociado a cualquier registro: entidad = nombre del modelo.
+model Adjunto {
+  id            String    @id @default(cuid())
+  clave         String    @unique
+  nombreArchivo String
+  tipoMime      String
+  tamano        Int
+  entidad       String
+  entidadId     String
+  descripcion   String?
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  createdById   String?
+  updatedById   String?
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  @@index([entidad, entidadId])
+}
+
+/// Bitácora de cambios. Solo se insertan filas; nunca se editan ni se borran.
+model Auditoria {
+  id            String          @id @default(cuid())
+  fecha         DateTime        @default(now()) @db.Timestamptz(3)
+  usuarioId     String?
+  usuarioNombre String?
+  entidad       String
+  entidadId     String
+  accion        AccionAuditoria
+  antes         Json?
+  despues       Json?
+
+  usuario Usuario? @relation(fields: [usuarioId], references: [id])
+
+  @@index([entidad, entidadId])
+  @@index([fecha])
+  @@index([usuarioId, fecha])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Módulo 1 — Costos
+// ─────────────────────────────────────────────────────────────────────────────
+
+model CentroCosto {
+  id          String    @id @default(cuid())
+  nombre      String    @unique
+  descripcion String?
+  activo      Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime? @db.Timestamptz(3)
+
+  gastos            Gasto[]
+  pagosNomina       PagoNomina[]
+  costosIndirectos  CostoIndirecto[]
+  detallesProrrateo ReglaProrrateoDetalle[]
+  activos           Activo[]
+  ingresos          Ingreso[]
+  presupuestos      Presupuesto[]
+}
+
+/// Rubro del informe de costos (Alimentación, Pasturas, Mano de obra, Arriendos…).
+model RubroCosto {
+  id          String     @id @default(cuid())
+  nombre      String     @unique
+  grupo       GrupoCosto
+  orden       Int        @default(0)
+  activo      Boolean    @default(true)
+  createdAt   DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime   @updatedAt @db.Timestamptz(3)
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime?  @db.Timestamptz(3)
+
+  categorias CategoriaGasto[]
+}
+
+model CategoriaGasto {
+  id          String             @id @default(cuid())
+  nombre      String             @unique
+  tipo        TipoCategoriaGasto
+  rubroId     String
+  activo      Boolean            @default(true)
+  createdAt   DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime           @updatedAt @db.Timestamptz(3)
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime?          @db.Timestamptz(3)
+
+  rubro            RubroCosto       @relation(fields: [rubroId], references: [id])
+  gastos           Gasto[]
+  costosIndirectos CostoIndirecto[]
+  presupuestos     Presupuesto[]
+}
+
+model Proveedor {
+  id          String    @id @default(cuid())
+  nombre      String    @unique
+  nit         String?
+  telefono    String?
+  email       String?
+  direccion   String?
+  activo      Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime? @db.Timestamptz(3)
+
+  gastos           Gasto[]
+  costosIndirectos CostoIndirecto[]
+  pajillas         Pajilla[]
+  movimientos      MovimientoAnimal[]
+}
+
+model Comprador {
+  id          String    @id @default(cuid())
+  nombre      String    @unique
+  nit         String?
+  telefono    String?
+  email       String?
+  direccion   String?
+  activo      Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime? @db.Timestamptz(3)
+
+  ingresos    Ingreso[]
+  entregas    EntregaLeche[]
+  movimientos MovimientoAnimal[]
+}
+
+model Insumo {
+  id           String       @id @default(cuid())
+  nombre       String       @unique
+  tipo         TipoInsumo
+  unidad       UnidadMedida
+  presentacion String? /// p. ej. "Bulto x 40 kg"
+  activo       Boolean      @default(true)
+  createdAt    DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime     @updatedAt @db.Timestamptz(3)
+  createdById  String?
+  updatedById  String?
+  deletedAt    DateTime?    @db.Timestamptz(3)
+
+  gastos            Gasto[]
+  suministros       SuministroAlimento[]
+  eventosSanitarios EventoSanitario[]
+}
+
+/// Compra o gasto directo (formato "Ingresar compra" de Colanta).
+model Gasto {
+  id            String       @id @default(cuid())
+  fecha         DateTime     @db.Date
+  categoriaId   String
+  centroCostoId String
+  proveedorId   String?
+  insumoId      String?
+  /// Artículo / nombre comercial.
+  descripcion   String
+  presentacion  String?
+  marca         String?
+  contenido     Decimal?     @db.Decimal(12, 3) /// Contenido o peso por presentación
+  cantidad      Decimal?     @db.Decimal(12, 3)
+  valorUnitario Decimal?     @db.Decimal(16, 2)
+  descuento     Decimal      @default(0) @db.Decimal(16, 2)
+  ivaPorcentaje Decimal      @default(0) @db.Decimal(5, 2)
+  valorIva      Decimal      @default(0) @db.Decimal(16, 2)
+  valorTotal    Decimal      @db.Decimal(16, 2)
+  numeroFactura String?
+  origen        OrigenCompra @default(EXTERNA)
+  notas         String?
+  /// Asignación directa opcional (a lo sumo una: animal o lote).
+  animalId      String?
+  loteId        String?
+  createdAt     DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime     @updatedAt @db.Timestamptz(3)
+  createdById   String?
+  updatedById   String?
+  deletedAt     DateTime?    @db.Timestamptz(3)
+
+  categoria          CategoriaGasto       @relation(fields: [categoriaId], references: [id])
+  centroCosto        CentroCosto          @relation(fields: [centroCostoId], references: [id])
+  proveedor          Proveedor?           @relation(fields: [proveedorId], references: [id])
+  insumo             Insumo?              @relation(fields: [insumoId], references: [id])
+  animal             Animal?              @relation(fields: [animalId], references: [id])
+  lote               Lote?                @relation(fields: [loteId], references: [id])
+  suministros        SuministroAlimento[]
+  eventosSanitarios  EventoSanitario[]
+  movimientosPajilla MovimientoPajilla[]
+
+  @@index([fecha])
+  @@index([centroCostoId, fecha])
+  @@index([categoriaId, fecha])
+  @@index([animalId, fecha])
+  @@index([loteId, fecha])
+}
+
+model Trabajador {
+  id           String       @id @default(cuid())
+  nombre       String
+  documento    String?
+  telefono     String?
+  cargo        String?
+  tipoContrato TipoContrato
+  salarioBase  Decimal      @default(0) @db.Decimal(16, 2)
+  /// Reemplazos y jornales extras.
+  eventual     Boolean      @default(false)
+  activo       Boolean      @default(true)
+  fechaIngreso DateTime?    @db.Date
+  fechaRetiro  DateTime?    @db.Date
+  createdAt    DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime     @updatedAt @db.Timestamptz(3)
+  createdById  String?
+  updatedById  String?
+  deletedAt    DateTime?    @db.Timestamptz(3)
+
+  pagos PagoNomina[]
+}
+
+/// Pago de nómina / mano de obra (registro de costo, no nómina electrónica DIAN).
+model PagoNomina {
+  id                 String    @id @default(cuid())
+  trabajadorId       String
+  fecha              DateTime  @db.Date
+  periodoInicio      DateTime? @db.Date
+  periodoFin         DateTime? @db.Date
+  labor              String?
+  jornales           Decimal?  @db.Decimal(8, 2)
+  salario            Decimal   @default(0) @db.Decimal(16, 2)
+  auxilioTransporte  Decimal   @default(0) @db.Decimal(16, 2)
+  salud              Decimal   @default(0) @db.Decimal(16, 2)
+  pension            Decimal   @default(0) @db.Decimal(16, 2)
+  arl                Decimal   @default(0) @db.Decimal(16, 2)
+  nivelRiesgoArl     Int?
+  prima              Decimal   @default(0) @db.Decimal(16, 2)
+  vacaciones         Decimal   @default(0) @db.Decimal(16, 2)
+  cesantias          Decimal   @default(0) @db.Decimal(16, 2)
+  interesesCesantias Decimal   @default(0) @db.Decimal(16, 2)
+  bonificacion       Decimal   @default(0) @db.Decimal(16, 2)
+  costoTotal         Decimal   @db.Decimal(16, 2)
+  centroCostoId      String
+  loteId             String?
+  nota               String?
+  createdAt          DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime  @updatedAt @db.Timestamptz(3)
+  createdById        String?
+  updatedById        String?
+  deletedAt          DateTime? @db.Timestamptz(3)
+
+  trabajador  Trabajador  @relation(fields: [trabajadorId], references: [id])
+  centroCosto CentroCosto @relation(fields: [centroCostoId], references: [id])
+  lote        Lote?       @relation(fields: [loteId], references: [id])
+
+  @@index([fecha])
+  @@index([trabajadorId, fecha])
+  @@index([centroCostoId, fecha])
+}
+
+/// Gasto administrativo / costo indirecto (predial, servicios, arriendo, financieros,
+/// transporte de leche, depreciación…). El valor cubre un período y se reparte por mes.
+model CostoIndirecto {
+  id               String       @id @default(cuid())
+  fecha            DateTime     @db.Date /// Inicio del período que cubre
+  categoriaId      String
+  periodicidad     Periodicidad @default(MENSUAL)
+  valorTotal       Decimal      @db.Decimal(16, 2)
+  /// Litros asociados (p. ej. transporte de leche) para calcular $/L.
+  litros           Decimal?     @db.Decimal(10, 2)
+  centroCostoId    String? /// Asignación directa; si es nulo se usa la regla de prorrateo
+  reglaProrrateoId String?
+  activoId         String? /// Depreciación de un activo
+  proveedorId      String?
+  nota             String?
+  createdAt        DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime     @updatedAt @db.Timestamptz(3)
+  createdById      String?
+  updatedById      String?
+  deletedAt        DateTime?    @db.Timestamptz(3)
+
+  categoria      CategoriaGasto  @relation(fields: [categoriaId], references: [id])
+  centroCosto    CentroCosto?    @relation(fields: [centroCostoId], references: [id])
+  reglaProrrateo ReglaProrrateo? @relation(fields: [reglaProrrateoId], references: [id])
+  activo         Activo?         @relation(fields: [activoId], references: [id])
+  proveedor      Proveedor?      @relation(fields: [proveedorId], references: [id])
+
+  @@index([fecha])
+  @@index([categoriaId, fecha])
+}
+
+model ReglaProrrateo {
+  id          String    @id @default(cuid())
+  nombre      String    @unique
+  descripcion String?
+  activo      Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime? @db.Timestamptz(3)
+
+  detalles         ReglaProrrateoDetalle[]
+  costosIndirectos CostoIndirecto[]
+}
+
+/// Porcentaje de una regla asignado a un centro de costo (la suma debe ser 100).
+model ReglaProrrateoDetalle {
+  id               String    @id @default(cuid())
+  reglaProrrateoId String
+  centroCostoId    String
+  porcentaje       Decimal   @db.Decimal(5, 2)
+  createdAt        DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime  @updatedAt @db.Timestamptz(3)
+  createdById      String?
+  updatedById      String?
+  deletedAt        DateTime? @db.Timestamptz(3)
+
+  reglaProrrateo ReglaProrrateo @relation(fields: [reglaProrrateoId], references: [id])
+  centroCosto    CentroCosto    @relation(fields: [centroCostoId], references: [id])
+
+  @@unique([reglaProrrateoId, centroCostoId])
+}
+
+/// Maquinaria y equipos para calcular depreciación.
+model Activo {
+  id            String    @id @default(cuid())
+  nombre        String
+  descripcion   String?
+  valorCompra   Decimal   @db.Decimal(16, 2)
+  fechaCompra   DateTime  @db.Date
+  vidaUtilMeses Int
+  valorResidual Decimal   @default(0) @db.Decimal(16, 2)
+  centroCostoId String?
+  activo        Boolean   @default(true)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  createdById   String?
+  updatedById   String?
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  centroCosto      CentroCosto?     @relation(fields: [centroCostoId], references: [id])
+  costosIndirectos CostoIndirecto[]
+}
+
+model Ingreso {
+  id                 String      @id @default(cuid())
+  tipo               TipoIngreso
+  /// Concepto libre: "Terneros", "Animales de descarte", "Venta leche 1ª quincena"…
+  concepto           String
+  fecha              DateTime    @db.Date
+  compradorId        String?
+  cantidad           Decimal     @db.Decimal(12, 3)
+  precioUnitario     Decimal     @db.Decimal(16, 2)
+  total              Decimal     @db.Decimal(16, 2)
+  animalId           String?
+  /// Venta de animal generada desde un movimiento VENTA (no se digita dos veces).
+  movimientoAnimalId String?     @unique
+  centroCostoId      String?
+  nota               String?
+  createdAt          DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime    @updatedAt @db.Timestamptz(3)
+  createdById        String?
+  updatedById        String?
+  deletedAt          DateTime?   @db.Timestamptz(3)
+
+  comprador        Comprador?        @relation(fields: [compradorId], references: [id])
+  animal           Animal?           @relation(fields: [animalId], references: [id])
+  movimientoAnimal MovimientoAnimal? @relation(fields: [movimientoAnimalId], references: [id])
+  centroCosto      CentroCosto?      @relation(fields: [centroCostoId], references: [id])
+
+  @@index([fecha])
+  @@index([tipo, fecha])
+}
+
+model Presupuesto {
+  id               String    @id @default(cuid())
+  anio             Int
+  mes              Int
+  categoriaGastoId String
+  centroCostoId    String?
+  valor            Decimal   @db.Decimal(16, 2)
+  createdAt        DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime  @updatedAt @db.Timestamptz(3)
+  createdById      String?
+  updatedById      String?
+  deletedAt        DateTime? @db.Timestamptz(3)
+
+  categoriaGasto CategoriaGasto @relation(fields: [categoriaGastoId], references: [id])
+  centroCosto    CentroCosto?   @relation(fields: [centroCostoId], references: [id])
+
+  @@unique([anio, mes, categoriaGastoId, centroCostoId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Módulo 2 — Reproductivo
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Toro {
+  id            String    @id @default(cuid())
+  nombre        String
+  codigo        String? /// Código o registro genealógico
+  razaId        String?
+  propio        Boolean   @default(false)
+  /// Vínculo opcional al Animal si el toro es del hato.
+  animalId      String?   @unique
+  activo        Boolean   @default(true)
+  observaciones String?
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  createdById   String?
+  updatedById   String?
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  raza      Raza?      @relation(fields: [razaId], references: [id])
+  animal    Animal?    @relation(fields: [animalId], references: [id])
+  hijos     Animal[]   @relation("PadreCrias")
+  pajillas  Pajilla[]
+  servicios Servicio[]
+  partos    Parto[]
+}
+
+model Pajilla {
+  id             String    @id @default(cuid())
+  toroId         String
+  razaId         String?
+  proveedorId    String?
+  codigo         String? /// Lote / código de la pajilla
+  ubicacionTermo String? /// Termo y canastilla
+  /// Existencias actuales; las mantienen los MovimientoPajilla.
+  existencias    Int       @default(0)
+  valorUnitario  Decimal?  @db.Decimal(16, 2)
+  activo         Boolean   @default(true)
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @db.Timestamptz(3)
+  createdById    String?
+  updatedById    String?
+  deletedAt      DateTime? @db.Timestamptz(3)
+
+  toro        Toro                @relation(fields: [toroId], references: [id])
+  raza        Raza?               @relation(fields: [razaId], references: [id])
+  proveedor   Proveedor?          @relation(fields: [proveedorId], references: [id])
+  movimientos MovimientoPajilla[]
+  servicios   Servicio[]
+}
+
+model MovimientoPajilla {
+  id          String                @id @default(cuid())
+  pajillaId   String
+  tipo        TipoMovimientoPajilla
+  fecha       DateTime              @db.Date
+  /// Positiva para ENTRADA, negativa para USO; AJUSTE con su signo.
+  cantidad    Int
+  servicioId  String?               @unique
+  gastoId     String?
+  nota        String?
+  createdAt   DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime              @updatedAt @db.Timestamptz(3)
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime?             @db.Timestamptz(3)
+
+  pajilla  Pajilla   @relation(fields: [pajillaId], references: [id])
+  servicio Servicio? @relation(fields: [servicioId], references: [id])
+  gasto    Gasto?    @relation(fields: [gastoId], references: [id])
+
+  @@index([pajillaId, fecha])
+}
+
+model Celo {
+  id            String    @id @default(cuid())
+  hembraId      String
+  fechaHora     DateTime  @db.Timestamptz(3)
+  observaciones String?
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  createdById   String?
+  updatedById   String?
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  hembra   Animal    @relation(fields: [hembraId], references: [id])
+  servicio Servicio?
+
+  @@index([hembraId, fechaHora])
+  @@index([fechaHora])
+}
+
+model Servicio {
+  id             String       @id @default(cuid())
+  hembraId       String
+  fecha          DateTime     @db.Date
+  tipo           TipoServicio
+  toroId         String? /// Obligatorio en monta natural
+  pajillaId      String? /// Obligatorio en inseminación
+  inseminador    String?
+  /// Número de servicio dentro del ciclo actual (1, 2, 3…).
+  numeroServicio Int          @default(1)
+  celoId         String?      @unique
+  observaciones  String?
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime     @updatedAt @db.Timestamptz(3)
+  createdById    String?
+  updatedById    String?
+  deletedAt      DateTime?    @db.Timestamptz(3)
+
+  hembra            Animal              @relation(fields: [hembraId], references: [id])
+  toro              Toro?               @relation(fields: [toroId], references: [id])
+  pajilla           Pajilla?            @relation(fields: [pajillaId], references: [id])
+  celo              Celo?               @relation(fields: [celoId], references: [id])
+  movimientoPajilla MovimientoPajilla?
+  diagnosticos      DiagnosticoPrenez[]
+  partos            Parto[]
+
+  @@index([hembraId, fecha])
+  @@index([fecha])
+}
+
+model DiagnosticoPrenez {
+  id                 String               @id @default(cuid())
+  hembraId           String
+  fecha              DateTime             @db.Date
+  metodo             MetodoDiagnostico
+  resultado          ResultadoDiagnostico
+  diasGestacion      Int?
+  fechaProbableParto DateTime?            @db.Date
+  servicioId         String?
+  veterinario        String?
+  observaciones      String?
+  createdAt          DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime             @updatedAt @db.Timestamptz(3)
+  createdById        String?
+  updatedById        String?
+  deletedAt          DateTime?            @db.Timestamptz(3)
+
+  hembra   Animal    @relation(fields: [hembraId], references: [id])
+  servicio Servicio? @relation(fields: [servicioId], references: [id])
+
+  @@index([hembraId, fecha])
+  @@index([fecha])
+}
+
+/// Cada cría se crea como Animal con partoId, madre y padre.
+model Parto {
+  id            String    @id @default(cuid())
+  hembraId      String
+  fecha         DateTime  @db.Date
+  tipo          TipoParto
+  servicioId    String?
+  toroId        String? /// Padre de las crías
+  observaciones String?
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  createdById   String?
+  updatedById   String?
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  hembra    Animal     @relation("PartosMadre", fields: [hembraId], references: [id])
+  servicio  Servicio?  @relation(fields: [servicioId], references: [id])
+  toro      Toro?      @relation(fields: [toroId], references: [id])
+  crias     Animal[]   @relation("PartoCrias")
+  lactancia Lactancia?
+
+  @@index([hembraId, fecha])
+  @@index([fecha])
+}
+
+model Aborto {
+  id            String    @id @default(cuid())
+  hembraId      String
+  fecha         DateTime  @db.Date
+  causa         String?
+  diasGestacion Int?
+  observaciones String?
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  createdById   String?
+  updatedById   String?
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  hembra Animal @relation(fields: [hembraId], references: [id])
+
+  @@index([hembraId, fecha])
+  @@index([fecha])
+}
+
+model Secado {
+  id            String    @id @default(cuid())
+  hembraId      String
+  fecha         DateTime  @db.Date
+  lactanciaId   String?   @unique
+  observaciones String?
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  createdById   String?
+  updatedById   String?
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  hembra    Animal     @relation(fields: [hembraId], references: [id])
+  lactancia Lactancia? @relation(fields: [lactanciaId], references: [id])
+
+  @@index([hembraId, fecha])
+  @@index([fecha])
+}
+
+model DescarteReproductivo {
+  id          String    @id @default(cuid())
+  hembraId    String
+  fecha       DateTime  @db.Date
+  motivo      String
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime? @db.Timestamptz(3)
+
+  hembra Animal @relation(fields: [hembraId], references: [id])
+
+  @@index([hembraId, fecha])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Módulo 3 — Productivo
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Lactancia: la abre un parto (o una carga inicial de una vaca ya en producción) y la
+/// cierra un secado. "Vaca en producción" = lactancia con fechaFin nula.
+model Lactancia {
+  id            String    @id @default(cuid())
+  vacaId        String
+  partoId       String?   @unique
+  numero        Int
+  fechaInicio   DateTime  @db.Date
+  fechaFin      DateTime? @db.Date
+  observaciones String?
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  createdById   String?
+  updatedById   String?
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  vaca    Animal           @relation(fields: [vacaId], references: [id])
+  parto   Parto?           @relation(fields: [partoId], references: [id])
+  secado  Secado?
+  ordenos RegistroOrdeno[]
+
+  @@index([vacaId, fechaInicio])
+  @@index([fechaFin])
+}
+
+/// Ordeño de una vaca o de un lote completo (exactamente uno de los dos).
+model RegistroOrdeno {
+  id          String    @id @default(cuid())
+  fecha       DateTime  @db.Date
+  jornada     Jornada
+  litros      Decimal   @db.Decimal(10, 2)
+  animalId    String?
+  loteId      String?
+  lactanciaId String?
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime? @db.Timestamptz(3)
+
+  animal    Animal?    @relation(fields: [animalId], references: [id])
+  lote      Lote?      @relation(fields: [loteId], references: [id])
+  lactancia Lactancia? @relation(fields: [lactanciaId], references: [id])
+
+  @@unique([animalId, fecha, jornada])
+  @@index([loteId, fecha])
+  @@index([fecha])
+}
+
+model EntregaLeche {
+  id          String    @id @default(cuid())
+  fecha       DateTime  @db.Date
+  compradorId String
+  litros      Decimal   @db.Decimal(10, 2)
+  precioLitro Decimal?  @db.Decimal(16, 2)
+  nota        String?
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime? @db.Timestamptz(3)
+
+  comprador Comprador @relation(fields: [compradorId], references: [id])
+
+  @@index([fecha])
+}
+
+/// Leche que no se vende: trabajadores, terneras, retiro (medicamentos) y arriendo.
+model ConsumoInternoLeche {
+  id          String              @id @default(cuid())
+  fecha       DateTime            @db.Date
+  destino     DestinoConsumoLeche
+  litros      Decimal             @db.Decimal(10, 2)
+  /// Valor en pesos (leche entregada como pago de arriendo).
+  valor       Decimal?            @db.Decimal(16, 2)
+  nota        String?
+  createdAt   DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime            @updatedAt @db.Timestamptz(3)
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime?           @db.Timestamptz(3)
+
+  @@index([fecha])
+  @@index([destino, fecha])
+}
+
+model Pesaje {
+  id            String       @id @default(cuid())
+  animalId      String
+  fecha         DateTime     @db.Date
+  pesoKg        Decimal      @db.Decimal(8, 2)
+  metodo        MetodoPesaje
+  /// Lote del animal al momento del pesaje.
+  loteId        String?
+  observaciones String?
+  createdAt     DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime     @updatedAt @db.Timestamptz(3)
+  createdById   String?
+  updatedById   String?
+  deletedAt     DateTime?    @db.Timestamptz(3)
+
+  animal Animal @relation(fields: [animalId], references: [id])
+  lote   Lote?  @relation(fields: [loteId], references: [id])
+
+  @@index([animalId, fecha])
+  @@index([loteId, fecha])
+  @@index([fecha])
+}
+
+/// Rotación: qué lote ocupa qué potrero y desde/hasta cuándo.
+model OcupacionPotrero {
+  id            String    @id @default(cuid())
+  loteId        String
+  potreroId     String
+  fechaEntrada  DateTime  @db.Date
+  fechaSalida   DateTime? @db.Date
+  observaciones String?
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  createdById   String?
+  updatedById   String?
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  lote    Lote    @relation(fields: [loteId], references: [id])
+  potrero Potrero @relation(fields: [potreroId], references: [id])
+
+  @@index([potreroId, fechaEntrada])
+  @@index([loteId, fechaEntrada])
+}
+
+model SuministroAlimento {
+  id          String    @id @default(cuid())
+  fecha       DateTime  @db.Date
+  loteId      String
+  insumoId    String
+  cantidad    Decimal   @db.Decimal(12, 3)
+  /// Enlace al gasto (Módulo 1) del que sale el insumo.
+  gastoId     String?
+  nota        String?
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime? @db.Timestamptz(3)
+
+  lote   Lote   @relation(fields: [loteId], references: [id])
+  insumo Insumo @relation(fields: [insumoId], references: [id])
+  gasto  Gasto? @relation(fields: [gastoId], references: [id])
+
+  @@index([loteId, fecha])
+  @@index([fecha])
+}
+
+/// Vacuna, desparasitación o tratamiento a un animal o a un lote (exactamente uno).
+model EventoSanitario {
+  id               String              @id @default(cuid())
+  tipo             TipoEventoSanitario
+  fecha            DateTime            @db.Date
+  insumoId         String?
+  producto         String
+  dosis            String?
+  via              String?
+  diagnostico      String?
+  animalId         String?
+  loteId           String?
+  veterinario      String?
+  retiroLecheHasta DateTime?           @db.Date
+  retiroCarneHasta DateTime?           @db.Date
+  gastoId          String?
+  observaciones    String?
+  createdAt        DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime            @updatedAt @db.Timestamptz(3)
+  createdById      String?
+  updatedById      String?
+  deletedAt        DateTime?           @db.Timestamptz(3)
+
+  insumo Insumo? @relation(fields: [insumoId], references: [id])
+  animal Animal? @relation(fields: [animalId], references: [id])
+  lote   Lote?   @relation(fields: [loteId], references: [id])
+  gasto  Gasto?  @relation(fields: [gastoId], references: [id])
+
+  @@index([animalId, fecha])
+  @@index([loteId, fecha])
+  @@index([fecha])
+  @@index([retiroLecheHasta])
 }
