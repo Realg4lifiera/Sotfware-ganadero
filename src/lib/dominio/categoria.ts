@@ -59,8 +59,14 @@ export const configuracionHatoSchema = z.object({
 });
 export type ConfiguracionHato = z.infer<typeof configuracionHatoSchema>;
 
+export const configuracionCostosSchema = z.object({
+  /** Si la finca no recupera el IVA (no es responsable), el IVA pagado es costo. */
+  ivaEsCosto: z.boolean().default(true),
+});
+
 export const configuracionFincaSchema = z.object({
   hato: configuracionHatoSchema.prefault({}),
+  costos: configuracionCostosSchema.prefault({}),
 });
 export type ConfiguracionFinca = z.infer<typeof configuracionFincaSchema>;
 

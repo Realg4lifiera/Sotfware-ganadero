@@ -103,3 +103,38 @@ export function edadTexto(nacimiento: Date, referencia: Date): string {
   if (resto > 0) partes.push(`${resto} ${resto === 1 ? "mes" : "meses"}`);
   return partes.join(" y ");
 }
+
+/** Mes actual en Bogotá como "AAAA-MM". */
+export function mesActualISO(ahora: Date = new Date()): string {
+  return hoyISO(ahora).slice(0, 7);
+}
+
+/** "AAAA-MM" → { desde, hasta } con hasta exclusivo (primer día del mes siguiente). */
+export function rangoMes(mes: string): { desde: Date; hasta: Date } {
+  const m = /^(\d{4})-(\d{2})$/.exec(mes);
+  if (!m || Number(m[2]) < 1 || Number(m[2]) > 12) throw new Error(`Mes inválido: ${mes}`);
+  const anio = Number(m[1]);
+  const mesNum = Number(m[2]);
+  return {
+    desde: new Date(Date.UTC(anio, mesNum - 1, 1)),
+    hasta: new Date(Date.UTC(anio, mesNum, 1)),
+  };
+}
+
+/** Mes válido desde un parámetro de URL, o el mes actual. */
+export function mesDesdeParametro(valor: unknown): string {
+  if (typeof valor === "string") {
+    try {
+      rangoMes(valor);
+      return valor;
+    } catch {
+      /* se usa el mes actual */
+    }
+  }
+  return mesActualISO();
+}
+
+/** "2025-06" → "junio de 2025" */
+export function nombreMes(mes: string): string {
+  return formatoMes(rangoMes(mes).desde);
+}

@@ -6,7 +6,11 @@ import {
   fechaDesdeISO,
   formatoFecha,
   hoyISO,
+  mesActualISO,
+  mesDesdeParametro,
   mesesEntre,
+  nombreMes,
+  rangoMes,
 } from "@/lib/fechas";
 
 describe("fechas America/Bogota", () => {
@@ -37,5 +41,22 @@ describe("fechas America/Bogota", () => {
     expect(edadTexto(fechaDesdeISO("2023-04-15"), ref)).toBe("2 años y 2 meses");
     expect(edadTexto(fechaDesdeISO("2025-06-03"), ref)).toBe("12 días");
     expect(edadTexto(fechaDesdeISO("2024-06-15"), ref)).toBe("1 año");
+  });
+});
+
+describe("meses", () => {
+  it("calcula el rango del mes con fin exclusivo", () => {
+    expect(rangoMes("2025-12")).toEqual({
+      desde: new Date("2025-12-01T00:00:00Z"),
+      hasta: new Date("2026-01-01T00:00:00Z"),
+    });
+    expect(() => rangoMes("2025-13")).toThrow();
+  });
+
+  it("usa el mes de Bogotá y valida parámetros", () => {
+    expect(mesActualISO(new Date("2025-07-01T03:00:00Z"))).toBe("2025-06");
+    expect(mesDesdeParametro("2024-02")).toBe("2024-02");
+    expect(mesDesdeParametro("basura")).toBe(mesActualISO());
+    expect(nombreMes("2025-06")).toBe("junio de 2025");
   });
 });

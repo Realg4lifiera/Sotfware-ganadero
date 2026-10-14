@@ -5,7 +5,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Save } from "lucide-react";
 import { toast } from "sonner";
-import { CAMPOS_FINCA, CAMPOS_HATO } from "@/lib/catalogos/finca";
+import { CAMPOS_COSTOS, CAMPOS_FINCA, CAMPOS_HATO } from "@/lib/catalogos/finca";
 import { esquemaDesdeCampos, type ValoresFormulario } from "@/lib/formularios/campos";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +16,10 @@ import { guardarFinca } from "./acciones";
 const NOMBRES_IDEAL = CAMPOS_HATO.filter((c) => c.nombre.startsWith("ideal_")).map((c) => c.nombre);
 
 export function FormularioFinca({ valores }: { valores: ValoresFormulario }) {
-  const esquema = useMemo(() => esquemaDesdeCampos([...CAMPOS_FINCA, ...CAMPOS_HATO]), []);
+  const esquema = useMemo(
+    () => esquemaDesdeCampos([...CAMPOS_FINCA, ...CAMPOS_HATO, ...CAMPOS_COSTOS]),
+    [],
+  );
   const {
     register,
     handleSubmit,
@@ -82,6 +85,22 @@ export function FormularioFinca({ valores }: { valores: ValoresFormulario }) {
           >
             Suma: {suma.toLocaleString("es-CO")} %
           </p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Costos</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          {CAMPOS_COSTOS.map((c) => (
+            <CampoFormulario
+              key={c.nombre}
+              campo={c}
+              register={register}
+              errores={errors}
+              valorInicial={valores[c.nombre]}
+            />
+          ))}
         </CardContent>
       </Card>
       <div className="flex justify-end">

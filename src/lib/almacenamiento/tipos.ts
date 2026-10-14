@@ -19,6 +19,13 @@ export const IMAGENES_PERMITIDAS: Record<string, string> = {
 };
 export const TAMANO_MAXIMO_IMAGEN = 5 * 1024 * 1024;
 
+/** Soportes de gastos: fotos o PDF de la factura. */
+export const SOPORTES_PERMITIDOS: Record<string, string> = {
+  ...IMAGENES_PERMITIDAS,
+  "application/pdf": "pdf",
+};
+export const TAMANO_MAXIMO_SOPORTE = 10 * 1024 * 1024;
+
 /** Claves seguras: segmentos alfanuméricos, sin "..", sin rutas absolutas. */
 export function claveValida(clave: string): boolean {
   return /^[a-z0-9-]+(\/[a-zA-Z0-9_-]+)*\.[a-z0-9]{2,5}$/.test(clave) && !clave.includes("..");

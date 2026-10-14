@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { accion } from "@/lib/accion";
-import { CAMPOS_FINCA, CAMPOS_HATO } from "@/lib/catalogos/finca";
+import { CAMPOS_COSTOS, CAMPOS_FINCA, CAMPOS_HATO } from "@/lib/catalogos/finca";
 import {
   CATEGORIAS_HATO,
   configuracionFincaSchema,
@@ -13,10 +13,9 @@ import { esquemaDesdeCampos } from "@/lib/formularios/campos";
 
 export async function guardarFinca(valores: unknown): Promise<ResultadoAccion> {
   const r = await accion("configuracion:gestionar", async ({ tx }) => {
-    const datos = esquemaDesdeCampos([...CAMPOS_FINCA, ...CAMPOS_HATO]).parse(valores) as Record<
-      string,
-      unknown
-    >;
+    const datos = esquemaDesdeCampos([...CAMPOS_FINCA, ...CAMPOS_HATO, ...CAMPOS_COSTOS]).parse(
+      valores,
+    ) as Record<string, unknown>;
     const ideal = Object.fromEntries(CATEGORIAS_HATO.map((c) => [c, Number(datos[`ideal_${c}`])]));
     const suma = Object.values(ideal).reduce((a, b) => a + b, 0);
     if (Math.abs(suma - 100) > 0.01) {
@@ -30,6 +29,7 @@ export async function guardarFinca(valores: unknown): Promise<ResultadoAccion> {
         edadNovillaMeses: datos.edadNovillaMeses,
         porcentajeIdeal: ideal,
       },
+      costos: { ivaEsCosto: datos.ivaEsCosto === true },
     });
     if (Number(datos.edadDesteteMeses) >= Number(datos.edadNovillaMeses)) {
       throw new ErrorNegocio("Revisa los datos.", {

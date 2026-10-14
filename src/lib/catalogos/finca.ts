@@ -65,3 +65,12 @@ export const CAMPOS_HATO: DefCampo[] = [
     sufijo: "%",
   })),
 ];
+
+export const CAMPOS_COSTOS: DefCampo[] = [
+  {
+    nombre: "ivaEsCosto",
+    etiqueta: "El IVA de las compras suma al costo",
+    tipo: "booleano",
+    ayuda: "Márcalo si la finca no recupera el IVA (no es responsable de IVA).",
+  },
+];

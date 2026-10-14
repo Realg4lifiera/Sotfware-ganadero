@@ -15,6 +15,7 @@ export default async function PaginaFinca() {
   const config = leerConfiguracion(finca?.configuracion);
   const valores = {
     ...valoresDesdeRegistro(CAMPOS_FINCA, finca ?? {}),
+    ivaEsCosto: config.costos.ivaEsCosto,
     edadDesteteMeses: String(config.hato.edadDesteteMeses),
     edadNovillaMeses: String(config.hato.edadNovillaMeses),
     ...Object.fromEntries(

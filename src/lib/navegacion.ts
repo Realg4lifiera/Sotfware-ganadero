@@ -69,6 +69,8 @@ export interface PaginaNav {
   estado?: "lista" | "proximamente";
   /** Formulario de campo rápido (aparece en "Registrar" del menú del celular). */
   registroRapido?: boolean;
+  /** Destino del registro rápido (por defecto `href`). */
+  hrefRapido?: string;
 }
 
 export interface SeccionNav {
@@ -127,6 +129,8 @@ export const NAVEGACION: SeccionNav[] = [
           "Registro rápido de gastos de campo desde el celular",
         ],
         registroRapido: true,
+        hrefRapido: "/costos/gastos/nuevo",
+        estado: "lista",
       },
       {
         titulo: "Nómina",

@@ -53,7 +53,9 @@ describe("accion(): permisos en el servidor", () => {
     usuarioActual = usuario("MAYORDOMO");
     expect(await accion("animal:trasladar", fn)).toEqual({ ok: true, datos: "hecho" });
     usuarioActual = usuario("VETERINARIO");
-    expect(await accion(["configuracion:gestionar", "reproduccion:gestionar"], fn)).toMatchObject({ ok: true });
+    expect(await accion(["configuracion:gestionar", "reproduccion:gestionar"], fn)).toMatchObject({
+      ok: true,
+    });
     expect(fn).toHaveBeenCalledTimes(2);
   });
 });

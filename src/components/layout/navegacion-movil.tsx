@@ -90,7 +90,7 @@ export function MenuInferior({
               {registrosRapidos.map((p) => (
                 <Link
                   key={p.href}
-                  href={p.href}
+                  href={p.hrefRapido ?? p.href}
                   onClick={() => setRegistrar(false)}
                   className="bg-secondary/50 hover:bg-accent flex flex-col items-center gap-2 rounded-xl border p-4 text-sm font-semibold"
                 >
