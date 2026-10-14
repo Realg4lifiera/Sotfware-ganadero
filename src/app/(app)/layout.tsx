@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { KeyRound } from "lucide-react";
 import { prismaBase } from "@/lib/db";
 import { navegacionPara } from "@/lib/navegacion";
 import { ETIQUETA_ROL } from "@/lib/permisos";
@@ -41,6 +43,15 @@ export default async function LayoutApp({ children }: LayoutProps<"/">) {
         </header>
 
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 pt-5 pb-28 sm:px-6 lg:px-8 lg:pb-10">
+          {usuario.debeCambiarClave && (
+            <Link
+              href="/cuenta"
+              className="border-warning/40 bg-warning/10 mb-4 flex items-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium"
+            >
+              <KeyRound className="text-warning size-4 shrink-0" />
+              Estás usando una contraseña temporal. Toca aquí para cambiarla.
+            </Link>
+          )}
           {children}
         </main>
       </div>

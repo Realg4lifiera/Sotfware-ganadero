@@ -11,6 +11,7 @@ export interface UsuarioActual {
   nombre: string;
   usuario: string;
   rol: Rol;
+  debeCambiarClave: boolean;
 }
 
 /**
@@ -23,10 +24,23 @@ export const obtenerUsuarioActual = cache(async (): Promise<UsuarioActual | null
   if (!id) return null;
   const u = await prismaBase.usuario.findUnique({
     where: { id },
-    select: { id: true, nombre: true, usuario: true, rol: true, activo: true },
+    select: {
+      id: true,
+      nombre: true,
+      usuario: true,
+      rol: true,
+      activo: true,
+      debeCambiarClave: true,
+    },
   });
   if (!u || !u.activo) return null;
-  return { id: u.id, nombre: u.nombre, usuario: u.usuario, rol: u.rol };
+  return {
+    id: u.id,
+    nombre: u.nombre,
+    usuario: u.usuario,
+    rol: u.rol,
+    debeCambiarClave: u.debeCambiarClave,
+  };
 });
 
 /** Para páginas: exige sesión (o redirige a /login) y el permiso (o responde 403). */

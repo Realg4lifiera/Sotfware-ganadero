@@ -1,6 +1,7 @@
 "use client";
 
-import { LogOut, UserCircle } from "lucide-react";
+import Link from "next/link";
+import { KeyRound, LogOut, UserCircle } from "lucide-react";
 import { cerrarSesion } from "@/app/sesion/acciones";
 import {
   DropdownMenu,
@@ -41,6 +42,12 @@ export function MenuUsuario({
           <span className="text-muted-foreground block text-xs font-normal">{rol}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/cuenta">
+            <KeyRound />
+            Mi cuenta
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => void cerrarSesion()}>
           <LogOut />
           Cerrar sesión
