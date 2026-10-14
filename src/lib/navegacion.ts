@@ -165,6 +165,7 @@ export const NAVEGACION: SeccionNav[] = [
         href: "/costos/activos",
         icono: "activo",
         permisos: ["costos:leer"],
+        estado: "lista",
         descripcion: "Maquinaria y equipos con su depreciación mensual.",
         alcance: [
           "Valor de compra, fecha, vida útil y valor residual",

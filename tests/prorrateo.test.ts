@@ -1,16 +1,32 @@
 import { describe, expect, it } from "vitest";
-import { cuotaEnMes, errorRegla, mesesCubiertos, prorratear, repartir } from "@/lib/dominio/prorrateo";
+import {
+  cuotaEnMes,
+  errorRegla,
+  mesesCubiertos,
+  prorratear,
+  repartir,
+} from "@/lib/dominio/prorrateo";
 import { fechaDesdeISO } from "@/lib/fechas";
 
 describe("reparto por meses", () => {
   it("lista los meses del período, cruzando el año", () => {
-    expect(mesesCubiertos(fechaDesdeISO("2025-11-15"), "TRIMESTRAL")).toEqual(["2025-11", "2025-12", "2026-01"]);
+    expect(mesesCubiertos(fechaDesdeISO("2025-11-15"), "TRIMESTRAL")).toEqual([
+      "2025-11",
+      "2025-12",
+      "2026-01",
+    ]);
     expect(mesesCubiertos(fechaDesdeISO("2025-03-01"), "MENSUAL")).toEqual(["2025-03"]);
   });
 
   it("reparte el predial anual en 12 cuotas que suman exacto", () => {
-    const predial = { fecha: fechaDesdeISO("2025-01-10"), periodicidad: "ANUAL" as const, valorTotal: 1000000 };
-    const cuotas = Array.from({ length: 12 }, (_, i) => cuotaEnMes(predial, `2025-${String(i + 1).padStart(2, "0")}`));
+    const predial = {
+      fecha: fechaDesdeISO("2025-01-10"),
+      periodicidad: "ANUAL" as const,
+      valorTotal: 1000000,
+    };
+    const cuotas = Array.from({ length: 12 }, (_, i) =>
+      cuotaEnMes(predial, `2025-${String(i + 1).padStart(2, "0")}`),
+    );
     expect(cuotas[0]).toBe(83333.34);
     expect(cuotas[11]).toBe(83333.33);
     expect(Math.round(cuotas.reduce((s, c) => s + c, 0) * 100) / 100).toBe(1000000);
@@ -32,10 +48,25 @@ describe("prorrateo entre centros de costo", () => {
   });
 
   it("valida que la regla sume 100 % sin repetidos", () => {
-    expect(errorRegla([{ centroCostoId: "a", porcentaje: 60 }, { centroCostoId: "b", porcentaje: 40 }])).toBeNull();
-    expect(errorRegla([{ centroCostoId: "a", porcentaje: 33.33 }, { centroCostoId: "b", porcentaje: 66.67 }])).toBeNull();
+    expect(
+      errorRegla([
+        { centroCostoId: "a", porcentaje: 60 },
+        { centroCostoId: "b", porcentaje: 40 },
+      ]),
+    ).toBeNull();
+    expect(
+      errorRegla([
+        { centroCostoId: "a", porcentaje: 33.33 },
+        { centroCostoId: "b", porcentaje: 66.67 },
+      ]),
+    ).toBeNull();
     expect(errorRegla([{ centroCostoId: "a", porcentaje: 60 }])).toMatch(/suman 60/);
-    expect(errorRegla([{ centroCostoId: "a", porcentaje: 50 }, { centroCostoId: "a", porcentaje: 50 }])).toMatch(/repetidos/);
+    expect(
+      errorRegla([
+        { centroCostoId: "a", porcentaje: 50 },
+        { centroCostoId: "a", porcentaje: 50 },
+      ]),
+    ).toMatch(/repetidos/);
     expect(errorRegla([])).toMatch(/al menos/);
   });
 });
