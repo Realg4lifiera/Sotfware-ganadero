@@ -147,6 +147,14 @@ Otras especies (equinos, etc.). Reglas en `src/lib/dominio/categoria.ts`.
 - **Indicadores:** funciones puras con pruebas en `lib/indicadores/` (hoy: GDP).
 - **Mensajes:** en español, neutros en género ("Este dato es obligatorio.").
 
+## Flujo de git (acordado con el usuario)
+
+- Se trabaja con commits locales (uno por paso, mensaje en español).
+- **Nunca hacer `git push` sin aprobación explícita del usuario.** Antes de subir, mostrar
+  los commits pendientes (`git log origin/<rama>..HEAD`) con un resumen de cambios y
+  esperar su "aprobado".
+- No crear pull requests salvo que el usuario lo pida.
+
 ## Comandos
 
 ```bash
