@@ -119,31 +119,82 @@ Vaca en producción (lactancia abierta) · Vaca seca (ya parió, sin lactancia a
 Macho levante/ceba (todo macho bovino que no es toro) · Toro (macho registrado como `Toro`) ·
 Otras especies (equinos, etc.). Reglas en `src/lib/dominio/categoria.ts`.
 
+## Convenciones de código (cómo se construye cada módulo)
+
+- **Escrituras:** toda server action que escribe usa `accion(permiso, async ({ tx, usuario }) => …)`
+  de `lib/accion.ts` y escribe SIEMPRE con `tx` (transacción auditada). Devuelve
+  `ResultadoAccion` (`{ ok, datos } | { ok: false, error, erroresCampo }`). Los errores de
+  negocio se lanzan como `ErrorNegocio(mensaje, erroresCampo?)`.
+- **Lecturas:** con `prismaBase` (`lib/db.ts`), filtrando `deletedAt: null`.
+- **Páginas:** empiezan con `await requierePermiso("…")` (redirige o responde 403).
+- **Auditoría:** automática (extensión de Prisma). No usar `delete`, `createMany`,
+  `updateMany` ni `deleteMany` en modelos auditados; las escrituras anidadas (nested
+  create) no se auditan por separado: crear cada registro con su propia llamada.
+- **Formularios:** declarativos con `DefCampo` (`lib/formularios/campos.ts`):
+  `esquemaDesdeCampos()` da el esquema Zod que usan cliente (RHF + zodResolver) y servidor.
+  Al servidor se envían los valores crudos (`getValues()`), que vuelve a validar.
+  Formularios que se renderizan en el servidor pasan `valorInicial` y deshabilitan el
+  botón hasta hidratar (`useHidratado`).
+- **Catálogos:** se declaran en `lib/catalogos/definiciones.ts` + `servidor.ts` y
+  aparecen solos en `/configuracion/[catalogo]`.
+- **Tablas:** `components/tabla-datos/tabla-datos.tsx` (TanStack Table v8); en celular
+  ocultar columnas secundarias con `meta: { ocultarEnMovil: true }`.
+- **Archivos:** `almacenamiento()` de `lib/almacenamiento` (local en desarrollo, Vercel Blob
+  privado en producción), servidos por `/api/archivos/[...clave]` con sesión.
+- **Excel:** exceljs en `lib/excel/`; la validación de importación es una función pura
+  (`validar-animales.ts`) que recibe los catálogos.
+- **Enums:** etiquetas en español en `lib/etiquetas.ts`.
+- **Indicadores:** funciones puras con pruebas en `lib/indicadores/` (hoy: GDP).
+- **Mensajes:** en español, neutros en género ("Este dato es obligatorio.").
+
 ## Comandos
 
 ```bash
 npm run dev          # servidor de desarrollo
 npm run check        # lint + typecheck + pruebas (correr antes de cada commit)
+npm run test:bd      # incluye pruebas de integración contra la BD local
 npm run db:migrate   # crear/aplicar migraciones en desarrollo
 npm run db:seed      # cargar datos de prueba
 npm run db:reset     # borrar BD, migrar y sembrar
+npm run db:inicial   # carga inicial de producción (FINCA_NOMBRE, ADMIN_CLAVE)
 ```
+
+Si el servidor de desarrollo muestra comportamiento viejo tras editar archivos del
+servidor, reinícialo (la recarga en caliente a veces no toma los cambios).
 
 Usuarios del seed (contraseña `ganadero123`): `admin`, `mayordomo`, `veterinario`, `contador`.
 
 ## Estructura
 
 ```
-prisma/            schema.prisma, migrations/, seed.ts
+prisma/            schema.prisma, migrations/, seed.ts, inicial.ts, catalogos-base.ts
 src/proxy.ts       exige sesión
 src/app/(auth)     login
 src/app/(app)      tablero, animales, costos, reproduccion, produccion, reportes,
-                   configuracion, auditoria
-src/lib            db, auth, permisos, accion, auditoria, almacenamiento/, formato, fechas,
-                   dominio/, servicios/, validaciones/, excel/, indicadores/
-src/components     ui/ (base), layout/, tabla-datos/, formularios/
-tests/             Vitest
+                   configuracion, cuenta, auditoria
+src/app/api        archivos, exportar/animales, plantilla/animales, auth
+src/lib            db, auth, sesion, permisos, accion, auditoria, traducir-error,
+                   navegacion, etiquetas, almacenamiento/, formato, fechas, dominio/,
+                   servicios/, validaciones/, formularios/, catalogos/, excel/, indicadores/
+src/components     ui/ (estilo shadcn sobre Radix), layout/, tabla-datos/, formularios/
+tests/             Vitest (tests/integracion/ requiere PRUEBAS_BD=1)
 ```
+
+## Estado actual
+
+Hecho (base): esquema completo de los 4 módulos, autenticación y roles, auditoría,
+configuración y catálogos, usuarios, animales (listado, ficha, foto, movimientos, hoja de
+vida, importación/exportación Excel), tablero con inventario real, máquina de estados
+reproductiva y de categorías (con pruebas), páginas "Próximamente" para todo el alcance.
+
+Siguiente: **Módulo 1 — Costos** (compras con IVA/descuento y soporte, nómina, gastos
+administrativos con período y prorrateo, activos y depreciación, ingresos, presupuesto,
+indicadores de costo e informe del productor). Las rutas ya existen en `src/app/(app)/costos`
+y su alcance está descrito en `lib/navegacion.ts`.
+
+Notas para Módulo 2: el servicio reproductivo debe usar `aplicarEvento()` de
+`lib/dominio/reproduccion.ts` y aplicar sus efectos (estado, `numeroPartos`, abrir/cerrar
+`Lactancia`); el parto crea las crías con `insertarAnimal()` de `lib/servicios/animales.ts`.
 
 ## Glosario de indicadores (PENDIENTES DE VALIDACIÓN con el veterinario)
 
