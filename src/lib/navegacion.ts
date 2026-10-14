@@ -151,6 +151,7 @@ export const NAVEGACION: SeccionNav[] = [
         href: "/costos/administrativos",
         icono: "administrativo",
         permisos: ["costos:leer"],
+        estado: "lista",
         descripcion: "Costos indirectos con período y prorrateo entre centros de costo.",
         alcance: [
           "Impuesto predial, servicios públicos, arriendo y gastos financieros",
