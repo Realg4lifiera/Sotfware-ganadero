@@ -82,3 +82,30 @@ describe.skipIf(!habilitada)("extensión de auditoría (BD)", () => {
     expect(String(error)).toMatch(/no se puede modificar/);
   });
 });
+
+describe.skipIf(!habilitada)("traducción de errores de unicidad (BD)", () => {
+  it("indica el campo duplicado", async () => {
+    const { traducirError } = await import("@/lib/traducir-error");
+    const usuario = await prismaBase.usuario.findFirstOrThrow({ where: { rol: "ADMIN" } });
+    const existente = await prismaBase.animal.findFirstOrThrow();
+    let resultado: unknown;
+    await contextoAuditoria
+      .run({ usuarioId: usuario.id, usuarioNombre: usuario.nombre }, () =>
+        db.$transaction(async (tx) => {
+          contextoAuditoria.getStore()!.tx = tx;
+          await tx.animal.create({
+            data: {
+              numero: existente.numero,
+              sexo: "MACHO",
+              origen: "NACIDO",
+              fechaIngreso: new Date(),
+            },
+          });
+        }),
+      )
+      .catch((e) => {
+        resultado = traducirError(e);
+      });
+    expect(resultado).toMatchObject({ error: "Ya existe un registro con ese número de chapeta." });
+  });
+});
