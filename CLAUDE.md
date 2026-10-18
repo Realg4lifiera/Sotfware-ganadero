@@ -4,8 +4,11 @@
 
 ## Contexto
 
-Software para **una sola finca** lechera/ganadera en Colombia (una finca por instalación,
-dividida en potreros y lotes). Cuatro módulos comparten un **registro único de animales**:
+Software lechero/ganadero en Colombia para **una persona que administra varias fincas
+independientes** (no es dueña de ellas) con los mismos parámetros. Cada finca está dividida
+en potreros y lotes y lleva sus propios datos; al entrar se ve primero "Mis fincas" (resumen
+de todas) y luego el manejo de la elegida. En cada finca, cuatro módulos comparten un
+**registro único de animales**:
 
 1. **Costos de producción** — compras/gastos, insumos, nómina (mano de obra), gastos
    administrativos (costos indirectos con período y prorrateo), activos y depreciación,
@@ -84,8 +87,8 @@ replica sus conceptos (no se integra con Colanta):
 - Mobile-first: formularios de campo usables a 375 px.
 - Todo debe poder exportarse a Excel (los datos son del cliente).
 - **Fuera de alcance:** app nativa, modo sin conexión, facturación/nómina electrónica DIAN,
-  contabilidad formal, integración con básculas/RFID/ordeñadoras/Colanta, multifinca,
-  módulo agrícola.
+  contabilidad formal, integración con básculas/RFID/ordeñadoras/Colanta,
+  consolidado contable entre fincas, módulo agrícola.
 - Si algo del dominio es ambiguo, **pregunta** en vez de inventar la regla.
 
 ## Roles
@@ -96,6 +99,10 @@ replica sus conceptos (no se integra con Colanta):
 | `MAYORDOMO`   | Registra eventos reproductivos, pesajes, ordeños, consumo/entregas de leche, gastos de campo y traslados de lote/potrero; consulta animales y sanidad |
 | `VETERINARIO` | Módulo reproductivo, sanidad, hojas de vida; ve costos de sanidad y reproducción; reportes reproductivos                                              |
 | `CONTADOR`    | Costos y reportes en solo lectura; consulta animales; exporta                                                                                         |
+| `PROPIETARIO` | Dueño de una finca: consulta todo (animales, reproducción, sanidad, costos, reportes) y exporta; no registra nada                                     |
+
+El `ADMIN` entra a todas las fincas y es el único que las crea. Los demás roles entran solo
+a las fincas asignadas (`UsuarioFinca`); con una sola, entran directo.
 
 La matriz exacta está en `src/lib/permisos.ts`.
 
@@ -147,6 +154,29 @@ Otras especies (equinos, etc.). Reglas en `src/lib/dominio/categoria.ts`.
 - **Indicadores:** funciones puras con pruebas en `lib/indicadores/` (hoy: GDP).
 - **Mensajes:** en español, neutros en género ("Este dato es obligatorio.").
 
+### Multifinca (`lib/finca.ts`, `lib/finca-sesion.ts`)
+
+- Los modelos de `MODELOS_POR_FINCA` llevan `fincaId`; la extensión de Prisma lo pone en
+  todo `create` y lo agrega al `where` de toda consulta, según la finca del contexto
+  (`AsyncLocalStorage`). **No filtres ni asignes `fincaId` a mano.** Sin finca, esas
+  consultas lanzan `ErrorSinFinca` (y el `@default(0)` del esquema lo rechaza la FK).
+- Compartidos entre fincas (sin `fincaId`): razas, rubros, categorías de gasto, insumos,
+  proveedores, usuarios. Por finca: todo lo demás (lotes, potreros, centros de costo,
+  toros, pajillas, trabajadores, compradores, configuración en `Finca.configuracion`).
+- La finca activa sale de la cookie `finca`, validada contra el acceso del usuario
+  (`fincaActual()`). `accion()` y `requierePermiso()` la exigen; las rutas de `app/api`
+  se envuelven con `enFinca(manejar)`; scripts y pruebas usan `conFinca(id, fn)`.
+- Acciones de toda la instalación (usuarios, fincas) pasan `{ global: true }` a `accion()`
+  y sus páginas usan `requierePermisoGlobal()`: corren sin finca y su auditoría queda con
+  `fincaId` nulo (visible desde todas las fincas).
+- Las escrituras anidadas (nested create) **no** pasan por la extensión: llevan `fincaId`
+  explícito. Las consultas de Prisma son perezosas: dentro de `contextoFinca.run()` hay
+  que esperarlas (`async () => await …`), o correrían fuera del contexto.
+- Los únicos de negocio son por finca (`@@unique([fincaId, numero])`, etc.);
+  `traducirError` ignora `fincaId` al nombrar el campo duplicado.
+- Nueva finca: `crearCentrosFinca()` (`lib/catalogos/centros-finca.ts`) dentro de
+  `conFinca`, y opcionalmente copia `configuracion` de otra finca.
+
 ## Flujo de git (acordado con el usuario)
 
 - Se trabaja con commits locales (uno por paso, mensaje en español).
@@ -170,7 +200,8 @@ npm run db:inicial   # carga inicial de producción (FINCA_NOMBRE, ADMIN_CLAVE)
 Si el servidor de desarrollo muestra comportamiento viejo tras editar archivos del
 servidor, reinícialo (la recarga en caliente a veces no toma los cambios).
 
-Usuarios del seed (contraseña `ganadero123`): `admin`, `mayordomo`, `veterinario`, `contador`.
+Usuarios del seed (contraseña `ganadero123`): `admin`, `mayordomo`, `veterinario`, `contador`,
+`propietario`.
 
 ## Estructura
 
@@ -178,6 +209,7 @@ Usuarios del seed (contraseña `ganadero123`): `admin`, `mayordomo`, `veterinari
 prisma/            schema.prisma, migrations/, seed.ts, inicial.ts, catalogos-base.ts
 src/proxy.ts       exige sesión
 src/app/(auth)     login
+src/app/(inicio)   fincas (Mis fincas, entrar, gestionar): pantallas fuera de una finca
 src/app/(app)      tablero, animales, costos, reproduccion, produccion, reportes,
                    configuracion, cuenta, auditoria
 src/app/api        archivos, exportar/animales, plantilla/animales, auth
@@ -253,6 +285,12 @@ en `globals.css`: imprimir con el navegador; marcar con `print:hidden` lo que no
 - La rotación toma como salida el primer movimiento de descarte, venta o muerte.
 - Las líneas del motor de costos llevan `loteId`/`animalId` cuando la compra o la nómina se
   asignó a un lote o animal.
+
+Hecho (Multifinca): datos por finca con filtro automático, "Mis fincas" como pantalla de
+inicio (animales, vacas en producción, litros y costo por litro del mes, alertas, retiros,
+rentabilidad), cambio de finca desde el encabezado, gestión de fincas (crear copiando
+parámetros, editar, desactivar), acceso de usuarios por finca y rol `PROPIETARIO`. El seed
+trae dos fincas (Campo Verde y La Esperanza) y el usuario `propietario`.
 
 Pendiente: alerta de pesajes pendientes (definir regla con el cliente), validar las fórmulas
 del glosario con el veterinario, conectar la base de datos de producción (Supabase/Neon).

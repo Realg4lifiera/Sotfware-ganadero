@@ -1,12 +1,10 @@
 # Campo Verde · Software ganadero
 
-Software para una finca lechera/ganadera en Colombia: registro único de animales y cuatro
-módulos (costos de producción, gestión reproductiva, gestión productiva y reportes).
-
-Esta versión es la **base**: proyecto, modelo de datos completo, autenticación por roles,
-auditoría, configuración y catálogos, registro de animales (con hoja de vida, movimientos e
-importación/exportación en Excel), máquina de estados reproductiva y el esqueleto navegable
-de los cuatro módulos. El contexto completo para desarrollar está en [`CLAUDE.md`](CLAUDE.md).
+Software lechero/ganadero en Colombia para administrar **varias fincas** con los mismos
+parámetros: al entrar se ve el resumen de todas ("Mis fincas") y, al elegir una, su manejo
+completo. Cada finca tiene registro único de animales y cuatro módulos: costos de
+producción, gestión reproductiva, gestión productiva y reportes (pantalla, Excel y PDF).
+El contexto completo para desarrollar está en [`CLAUDE.md`](CLAUDE.md).
 
 ## Requisitos
 
@@ -24,7 +22,7 @@ cp .env.example .env        # revisa los valores; en local sirven tal cual
 docker compose up -d        # PostgreSQL en localhost:5432 (usuario/clave: ganadero)
 
 npm run db:deploy           # aplica las migraciones
-npm run db:seed             # datos de prueba (finca, 45 animales, un usuario por rol)
+npm run db:seed             # datos de prueba (2 fincas, un usuario por rol)
 npm run dev                 # http://localhost:3000
 ```
 
@@ -41,6 +39,9 @@ Todos con la contraseña `ganadero123`:
 | `mayordomo`   | Mayordomo     | Eventos de campo (reproducción, ordeños, pesajes, leche, gastos), traslados; consulta animales y sanidad |
 | `veterinario` | Veterinario   | Reproducción, sanidad, toros y pajillas, hojas de vida, costos de sanidad, reportes reproductivos        |
 | `contador`    | Contador      | Costos y reportes en solo lectura; consulta y exporta animales                                           |
+| `propietario` | Propietario   | Consulta todo de su finca (Campo Verde) y exporta; no registra nada                                      |
+
+El administrador entra a las dos fincas de prueba; los demás usuarios solo a Campo Verde.
 
 ## Comandos
 
@@ -77,8 +78,9 @@ Todos con la contraseña `ganadero123`:
    ADMIN_USUARIO="admin" ADMIN_CLAVE="una-clave-segura" npm run db:inicial
    ```
 
-   Crea la finca, el administrador (deberá cambiar la contraseña al entrar) y los catálogos
-   base. **No uses `db:seed` en producción**: son datos de prueba.
+   Crea la primera finca, el administrador (deberá cambiar la contraseña al entrar) y los
+   catálogos base. Las demás fincas se crean desde la app (_Mis fincas › Gestionar
+   fincas_) y el acceso de cada usuario se asigna en _Configuración › Usuarios_. **No uses `db:seed` en producción**: son datos de prueba.
 
 La zona horaria de la aplicación es `America/Bogota` y no depende de la del servidor.
 
@@ -93,7 +95,7 @@ con la plantilla descargable, que trae listas desplegables con los catálogos de
 ```
 prisma/          schema.prisma · migrations/ · seed.ts · inicial.ts · catalogos-base.ts
 src/proxy.ts     exige sesión en toda la app
-src/app/         (auth)/login · (app)/… páginas por módulo · api/ (archivos, Excel, auth)
+src/app/         (auth)/login · (inicio)/fincas · (app)/… páginas por módulo · api/ (archivos, Excel, auth)
 src/lib/         permisos, accion, auditoria, almacenamiento/, dominio/, servicios/,
                  validaciones/, excel/, indicadores/, formato, fechas
 src/components/  ui/ (estilo shadcn) · layout/ · tabla-datos/ · formularios/
