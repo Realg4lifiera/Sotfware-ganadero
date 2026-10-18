@@ -227,8 +227,27 @@ consanguinidad, alertas (página + tablero) e indicadores con reporte y Excel.
   su venta). Crías nacidas muertas no se registran (se anotan en observaciones).
 - Indicadores reproductivos en `lib/indicadores/reproduccion.ts` (pendientes de validar).
 
-Siguiente: **Módulo 3 — Productivo** (ordeños y lactancias, pesajes, lotes y potreros,
-alimentación, sanidad); luego costo por kilo ganado y por animal/día del Módulo 1.
+Hecho (Módulo 3 — Productivo): control lechero (planilla por vaca) y totales por lote con
+conciliación, lactancias con producción estimada y ajustada a 305, pesajes (individual y por
+lote) y ganancia de peso, rotación de potreros con carga animal (UA/ha), alimentación por
+lote, sanidad con retiros de leche/carne, reporte productivo y, en Costos, costo por kilo
+ganado y por animal/día.
+
+- Litros producidos del costo = entregas + consumo interno (Colanta); los ordeños sirven
+  para el control por vaca y la conciliación. Un mismo ordeño no se registra por vaca y
+  por lote a la vez.
+- Producción de lactancia: curva por intervalos de control; ajustada a 305 proporcional
+  (`lib/indicadores/lactancia.ts`, pendiente de validar).
+- UA por categoría configurables en Finca (vaca 1,0 · novilla 0,7 · ternera 0,4 ·
+  lactante 0,2 · macho levante 0,6 · toro 1,3 · otras 1,0).
+- Rotar un lote traslada a todos sus animales con su movimiento de potrero.
+- Centros con clave: LECHERIA, CRIA_LEVANTE, CEBA (costo por kilo ganado).
+- Retiros: un evento de lote cubre a sus animales; el de leche solo cuenta en vacas en
+  producción.
+
+Siguiente: **Módulo 4 — Reportes** (reportes de costos filtrables, inventario y rotación
+mensual, exportación a PDF) y pendientes: alerta de pesajes pendientes (definir regla con
+el cliente), validar fórmulas del glosario con el veterinario.
 
 ## Glosario de indicadores (PENDIENTES DE VALIDACIÓN con el veterinario)
 
