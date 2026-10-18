@@ -4,6 +4,7 @@ import { esquemaDesdeCampos, type DefCampo } from "@/lib/formularios/campos";
 import {
   ETIQUETA_METODO_DIAGNOSTICO,
   ETIQUETA_RESULTADO_DIAGNOSTICO,
+  ETIQUETA_TIPO_PARTO,
   ETIQUETA_TIPO_SERVICIO,
   opciones,
 } from "@/lib/etiquetas";
@@ -107,3 +108,133 @@ export const CAMPOS_DIAGNOSTICO: DefCampo[] = [
 export const esquemaDiagnostico = esquemaDesdeCampos(CAMPOS_DIAGNOSTICO).superRefine(noFutura);
 export const ocultarCampoDiagnostico = (campo: string, v: Record<string, unknown>) =>
   campo === "diasGestacion" && v.resultado !== "PRENADA";
+
+// ─── Parto ───────────────────────────────────────────────────────────────────
+
+const cria = (n: 1 | 2): DefCampo[] => [
+  {
+    nombre: `cria${n}_numero`,
+    etiqueta: `Cría ${n} · número de chapeta`,
+    tipo: "texto",
+    max: 30,
+  },
+  {
+    nombre: `cria${n}_sexo`,
+    etiqueta: `Cría ${n} · sexo`,
+    tipo: "opcion",
+    opciones: [
+      { valor: "HEMBRA", etiqueta: "Hembra" },
+      { valor: "MACHO", etiqueta: "Macho" },
+    ],
+  },
+  { nombre: `cria${n}_nombre`, etiqueta: `Cría ${n} · nombre`, tipo: "texto", max: 60 },
+  {
+    nombre: `cria${n}_peso`,
+    etiqueta: `Cría ${n} · peso al nacer`,
+    tipo: "decimal",
+    min: 1,
+    max: 100,
+    sufijo: "kg",
+  },
+];
+
+export const CAMPOS_PARTO: DefCampo[] = [
+  hembra,
+  fecha,
+  {
+    nombre: "tipo",
+    etiqueta: "Tipo de parto",
+    tipo: "opcion",
+    requerido: true,
+    opciones: opciones(ETIQUETA_TIPO_PARTO),
+  },
+  {
+    nombre: "toroId",
+    etiqueta: "Padre (toro)",
+    tipo: "opcion",
+    opcionesDe: "toros",
+    ayuda: "Se propone el toro del último servicio.",
+  },
+  {
+    nombre: "numeroCrias",
+    etiqueta: "Crías vivas",
+    tipo: "opcion",
+    requerido: true,
+    opciones: [
+      { valor: "1", etiqueta: "1" },
+      { valor: "2", etiqueta: "2 (mellizos)" },
+      { valor: "0", etiqueta: "Ninguna" },
+    ],
+    ayuda: "Si una cría nació muerta, no la registres: anótalo en observaciones.",
+  },
+  ...cria(1),
+  ...cria(2),
+  observaciones,
+];
+
+export const esquemaParto = esquemaDesdeCampos(CAMPOS_PARTO).superRefine((d, ctx) => {
+  noFutura(d, ctx);
+  const n = Number(d.numeroCrias ?? 0);
+  for (const i of [1, 2]) {
+    if (i > n) continue;
+    if (!d[`cria${i}_numero`])
+      ctx.addIssue({
+        code: "custom",
+        path: [`cria${i}_numero`],
+        message: "Este dato es obligatorio.",
+      });
+    if (!d[`cria${i}_sexo`])
+      ctx.addIssue({
+        code: "custom",
+        path: [`cria${i}_sexo`],
+        message: "Este dato es obligatorio.",
+      });
+  }
+  if (n === 2 && d.cria1_numero && d.cria1_numero === d.cria2_numero)
+    ctx.addIssue({
+      code: "custom",
+      path: ["cria2_numero"],
+      message: "Debe ser distinto de la cría 1.",
+    });
+});
+export const ocultarCampoParto = (campo: string, v: Record<string, unknown>) => {
+  const m = /^cria(\d)_/.exec(campo);
+  return m ? Number(m[1]) > Number(v.numeroCrias ?? 0) : false;
+};
+
+// ─── Aborto, secado y descarte ───────────────────────────────────────────────
+
+export const CAMPOS_ABORTO: DefCampo[] = [
+  hembra,
+  fecha,
+  { nombre: "causa", etiqueta: "Causa", tipo: "texto", max: 120 },
+  {
+    nombre: "diasGestacion",
+    etiqueta: "Días de gestación",
+    tipo: "entero",
+    min: 1,
+    max: 300,
+    sufijo: "días",
+    ayuda: "Si se deja vacío se calcula con la fecha probable de parto.",
+  },
+  observaciones,
+];
+export const esquemaAborto = esquemaDesdeCampos(CAMPOS_ABORTO).superRefine(noFutura);
+
+export const CAMPOS_SECADO: DefCampo[] = [hembra, fecha, observaciones];
+export const esquemaSecado = esquemaDesdeCampos(CAMPOS_SECADO).superRefine(noFutura);
+
+export const CAMPOS_DESCARTE: DefCampo[] = [
+  hembra,
+  fecha,
+  {
+    nombre: "motivo",
+    etiqueta: "Motivo",
+    tipo: "texto",
+    requerido: true,
+    max: 200,
+    anchoCompleto: true,
+    ayuda: "Ej.: repetidora, problemas de parto, baja producción.",
+  },
+];
+export const esquemaDescarte = esquemaDesdeCampos(CAMPOS_DESCARTE).superRefine(noFutura);

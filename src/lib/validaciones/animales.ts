@@ -119,6 +119,8 @@ export interface AnimalNuevo {
   numeroPartos: number;
   enProduccion: boolean;
   valorCompra: string | null;
+  /** Parto en que nació (crías registradas desde Reproducción › Partos). */
+  partoId?: string | null;
 }
 
 type Datos = Record<string, unknown>;

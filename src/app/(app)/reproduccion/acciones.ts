@@ -6,8 +6,12 @@ import type { ResultadoAccion } from "@/lib/errores";
 import { ETIQUETA_TIPO_EVENTO_REPRODUCTIVO } from "@/lib/etiquetas";
 import {
   anularUltimoEvento as anular,
+  registrarAborto as aborto,
   registrarCelo as celo,
+  registrarDescarte as descarte,
   registrarDiagnostico as diagnostico,
+  registrarParto as parto,
+  registrarSecado as secado,
   registrarServicio as servicio,
 } from "@/lib/servicios/reproduccion";
 
@@ -31,6 +35,30 @@ export async function registrarServicio(valores: unknown): Promise<ResultadoAcci
 
 export async function registrarDiagnostico(valores: unknown): Promise<ResultadoAccion<string>> {
   const r = await accion("reproduccion:registrar", ({ tx }) => diagnostico(tx, valores));
+  if (r.ok) refrescar();
+  return r;
+}
+
+export async function registrarParto(valores: unknown): Promise<ResultadoAccion<string>> {
+  const r = await accion("reproduccion:registrar", ({ tx }) => parto(tx, valores));
+  if (r.ok) refrescar();
+  return r;
+}
+
+export async function registrarAborto(valores: unknown): Promise<ResultadoAccion<string>> {
+  const r = await accion("reproduccion:registrar", ({ tx }) => aborto(tx, valores));
+  if (r.ok) refrescar();
+  return r;
+}
+
+export async function registrarSecado(valores: unknown): Promise<ResultadoAccion<string>> {
+  const r = await accion("reproduccion:registrar", ({ tx }) => secado(tx, valores));
+  if (r.ok) refrescar();
+  return r;
+}
+
+export async function registrarDescarte(valores: unknown): Promise<ResultadoAccion<string>> {
+  const r = await accion("reproduccion:registrar", ({ tx }) => descarte(tx, valores));
   if (r.ok) refrescar();
   return r;
 }

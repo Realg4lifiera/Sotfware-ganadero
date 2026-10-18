@@ -2,17 +2,34 @@
 
 import type { Opcion, ValoresFormulario } from "@/lib/formularios/campos";
 import {
+  CAMPOS_ABORTO,
   CAMPOS_CELO,
+  CAMPOS_DESCARTE,
   CAMPOS_DIAGNOSTICO,
+  CAMPOS_PARTO,
+  CAMPOS_SECADO,
   CAMPOS_SERVICIO,
+  esquemaAborto,
   esquemaCelo,
+  esquemaDescarte,
   esquemaDiagnostico,
+  esquemaParto,
+  esquemaSecado,
   esquemaServicio,
   ocultarCampoDiagnostico,
+  ocultarCampoParto,
   ocultarCampoServicio,
 } from "@/lib/validaciones/reproduccion";
 import { FormularioSecciones } from "@/components/formularios/formulario-secciones";
-import { registrarCelo, registrarDiagnostico, registrarServicio } from "./acciones";
+import {
+  registrarAborto,
+  registrarCelo,
+  registrarDescarte,
+  registrarDiagnostico,
+  registrarParto,
+  registrarSecado,
+  registrarServicio,
+} from "./acciones";
 
 interface Props {
   valores: ValoresFormulario;
@@ -65,3 +82,88 @@ export function FormularioDiagnostico({ valores, opcionesDinamicas }: Props) {
     />
   );
 }
+
+export function FormularioParto({
+  valores,
+  opcionesDinamicas,
+  padres,
+}: Props & { padres: Record<string, string> }) {
+  const crias = CAMPOS_PARTO.filter((c) => c.nombre.startsWith("cria"));
+  return (
+    <FormularioSecciones
+      secciones={[
+        {
+          titulo: "Parto",
+          campos: CAMPOS_PARTO.filter(
+            (c) => !c.nombre.startsWith("cria") && c.nombre !== "observaciones",
+          ),
+        },
+        {
+          titulo: "Crías",
+          descripcion: "Cada cría queda registrada como animal, con su madre y su padre.",
+          campos: [...crias, ...CAMPOS_PARTO.filter((c) => c.nombre === "observaciones")],
+        },
+      ]}
+      esquema={esquemaParto}
+      valores={valores}
+      opcionesDinamicas={opcionesDinamicas}
+      enviar={registrarParto}
+      destino={() => "/reproduccion/partos"}
+      textoBoton="Registrar parto"
+      mensajeExito="Parto registrado."
+      ocultar={ocultarCampoParto}
+      alCambiar={(campo, v, fijar) => {
+        if (campo === "hembraId") fijar("toroId", padres[String(v.hembraId)] ?? "");
+      }}
+    />
+  );
+}
+
+function formularioSimple(
+  titulo: string,
+  campos: typeof CAMPOS_SECADO,
+  esquema: typeof esquemaSecado,
+  enviar: typeof registrarSecado,
+  ruta: string,
+  boton: string,
+) {
+  return function Formulario({ valores, opcionesDinamicas }: Props) {
+    return (
+      <FormularioSecciones
+        secciones={[{ titulo, campos }]}
+        esquema={esquema}
+        valores={valores}
+        opcionesDinamicas={opcionesDinamicas}
+        enviar={enviar}
+        destino={() => ruta}
+        textoBoton={boton}
+        mensajeExito={`${titulo} registrado.`}
+      />
+    );
+  };
+}
+
+export const FormularioAborto = formularioSimple(
+  "Aborto",
+  CAMPOS_ABORTO,
+  esquemaAborto,
+  registrarAborto,
+  "/reproduccion/abortos",
+  "Registrar aborto",
+);
+export const FormularioSecado = formularioSimple(
+  "Secado",
+  CAMPOS_SECADO,
+  esquemaSecado,
+  registrarSecado,
+  "/reproduccion/secados",
+  "Registrar secado",
+);
+export const FormularioDescarte = formularioSimple(
+  "Descarte",
+  CAMPOS_DESCARTE,
+  esquemaDescarte,
+  registrarDescarte,
+  "/reproduccion/descartes",
+  "Registrar descarte",
+);

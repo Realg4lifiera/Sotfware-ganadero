@@ -75,6 +75,7 @@ export async function insertarAnimal(tx: Tx, a: AnimalNuevo): Promise<string> {
       pesoNacimientoKg: a.pesoNacimientoKg,
       madreId: a.madreId,
       padreId: a.padreId,
+      partoId: a.partoId ?? null,
       loteId: a.loteId,
       potreroId: a.potreroId,
       observaciones: a.observaciones,

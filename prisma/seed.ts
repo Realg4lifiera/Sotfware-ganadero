@@ -415,7 +415,8 @@ async function main() {
         hembraId,
         fecha,
         tipo: inseminacion ? "INSEMINACION" : "MONTA_NATURAL",
-        toroId: inseminacion ? null : toros[toro],
+        // El padre queda en el servicio también en inseminación (es el toro de la pajilla).
+        toroId: toros[toro],
         pajillaId: inseminacion ? pajillas[toro] : null,
         inseminador: inseminacion ? "Inseminador de la cooperativa" : null,
         numeroServicio: 1,

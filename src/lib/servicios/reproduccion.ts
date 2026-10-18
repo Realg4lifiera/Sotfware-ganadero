@@ -2,7 +2,12 @@ import "server-only";
 import type { Tx } from "@/lib/auditoria";
 import { prismaBase } from "@/lib/db";
 import type { EstadoReproductivo, TipoEventoReproductivo } from "@/generated/prisma/enums";
-import { fechaHoraBogota, numeroServicio, partoDesdeDiagnostico } from "@/lib/dominio/gestacion";
+import {
+  diasGestacionA,
+  fechaHoraBogota,
+  numeroServicio,
+  partoDesdeDiagnostico,
+} from "@/lib/dominio/gestacion";
 import {
   aplicarEvento,
   ErrorTransicion,
@@ -15,8 +20,17 @@ import { ETIQUETA_ESTADO_REPRODUCTIVO } from "@/lib/etiquetas";
 import { formatoFecha, hoy } from "@/lib/fechas";
 import type { Opcion } from "@/lib/formularios/campos";
 import { obtenerConfiguracionFinca } from "@/lib/servicios/inventario";
+import { insertarAnimal, type AnimalNuevo } from "@/lib/servicios/animales";
 import { moverExistencias } from "@/lib/servicios/pajillas";
-import { esquemaCelo, esquemaDiagnostico, esquemaServicio } from "@/lib/validaciones/reproduccion";
+import {
+  esquemaAborto,
+  esquemaCelo,
+  esquemaDescarte,
+  esquemaDiagnostico,
+  esquemaParto,
+  esquemaSecado,
+  esquemaServicio,
+} from "@/lib/validaciones/reproduccion";
 
 /**
  * Servicio del Módulo 2. Todo evento reproductivo pasa por `aplicar()`: valida el orden
@@ -116,7 +130,7 @@ export async function aplicar(
   tipo: TipoEventoReproductivo,
   eventoId: string,
   fecha: Date,
-  opciones: { partoId?: string; descartar?: boolean } = {},
+  opciones: { partoId?: string; descartar?: boolean; motivo?: string } = {},
 ): Promise<Aplicacion> {
   let r;
   try {
@@ -127,7 +141,8 @@ export async function aplicar(
   }
   let lactanciaCerradaId: string | null = null;
   let lactanciaAbiertaId: string | null = null;
-  if (r.cerrarLactancia && h.lactancia) {
+  // El descarte saca a la hembra del hato: cierra su lactancia como una venta o muerte.
+  if ((r.cerrarLactancia || opciones.descartar) && h.lactancia) {
     await tx.lactancia.update({ where: { id: h.lactancia.id }, data: { fechaFin: fecha } });
     lactanciaCerradaId = h.lactancia.id;
   }
@@ -141,6 +156,20 @@ export async function aplicar(
       },
     });
     lactanciaAbiertaId = l.id;
+  }
+  if (opciones.descartar) {
+    const a = await tx.animal.findUniqueOrThrow({ where: { id: h.id } });
+    // Mismo movimiento que Animales › Movimientos › Descarte (queda en la hoja de vida).
+    await tx.movimientoAnimal.create({
+      data: {
+        animalId: h.id,
+        tipo: "DESCARTE",
+        fecha,
+        motivo: opciones.motivo ?? null,
+        loteOrigenId: a.loteId,
+        potreroOrigenId: a.potreroId,
+      },
+    });
   }
   if (!r.sinCambio || opciones.descartar)
     await tx.animal.update({
@@ -332,7 +361,11 @@ export async function anularUltimoEvento(tx: Tx, hembraId: string): Promise<stri
       await tx.celo.update({ where: { id }, data: { deletedAt: ahora } });
       break;
     case "SERVICIO": {
-      const s = await tx.servicio.update({ where: { id }, data: { deletedAt: ahora } });
+      // Se suelta el celo (vínculo único) para que un nuevo servicio pueda usarlo.
+      const s = await tx.servicio.update({
+        where: { id },
+        data: { deletedAt: ahora, celoId: null },
+      });
       if (s.pajillaId) {
         await moverExistencias(tx, s.pajillaId, 1);
         const m = await tx.movimientoPajilla.findFirst({
@@ -357,7 +390,11 @@ export async function anularUltimoEvento(tx: Tx, hembraId: string): Promise<stri
           throw new ErrorNegocio(
             `La cría ${c.numero} ya tiene registros propios: corrígelos antes de anular el parto.`,
           );
-        await tx.animal.update({ where: { id: c.id }, data: { deletedAt: ahora } });
+        // Como al eliminar un animal: se libera el número de chapeta.
+        await tx.animal.update({
+          where: { id: c.id },
+          data: { deletedAt: ahora, numero: `${c.numero}~eliminado~${c.id.slice(-6)}` },
+        });
       }
       await tx.parto.update({ where: { id }, data: { deletedAt: ahora } });
       break;
@@ -366,11 +403,24 @@ export async function anularUltimoEvento(tx: Tx, hembraId: string): Promise<stri
       await tx.aborto.update({ where: { id }, data: { deletedAt: ahora } });
       break;
     case "SECADO":
-      await tx.secado.update({ where: { id }, data: { deletedAt: ahora } });
+      // Se suelta la lactancia (vínculo único) para poder volver a secarla.
+      await tx.secado.update({ where: { id }, data: { deletedAt: ahora, lactanciaId: null } });
       break;
-    case "DESCARTE":
+    case "DESCARTE": {
+      const a = await tx.animal.findUniqueOrThrow({ where: { id: hembraId } });
+      if (a.estado !== "DESCARTADO")
+        throw new ErrorNegocio(
+          "La hembra ya salió de la finca (vendida o muerta): no se puede anular el descarte.",
+        );
       await tx.descarteReproductivo.update({ where: { id }, data: { deletedAt: ahora } });
+      const mov = await tx.movimientoAnimal.findFirst({
+        where: { animalId: hembraId, tipo: "DESCARTE", deletedAt: null },
+        orderBy: { createdAt: "desc" },
+      });
+      if (mov)
+        await tx.movimientoAnimal.update({ where: { id: mov.id }, data: { deletedAt: ahora } });
       break;
+    }
   }
 
   if (ultimo.lactanciaAbiertaId) {
@@ -497,3 +547,186 @@ export async function eventosAnulables(hembraIds: string[]): Promise<Set<string>
 
 export const nombreHembra = (a: { numero: string; nombre: string | null }) =>
   a.nombre ? `${a.numero} · ${a.nombre}` : a.numero;
+
+// ─── Parto ───────────────────────────────────────────────────────────────────
+
+export async function registrarParto(tx: Tx, valores: unknown): Promise<string> {
+  const d = esquemaParto.parse(valores) as Record<string, unknown>;
+  const h = await cargarHembra(tx, String(d.hembraId));
+  const fecha = d.fecha as Date;
+  await validarFecha(tx, h, fecha);
+  const inicio = await inicioCiclo(tx, h.id);
+  const servicio = await tx.servicio.findFirst({
+    where: { hembraId: h.id, deletedAt: null, ...(inicio ? { fecha: { gt: inicio } } : {}) },
+    orderBy: { fecha: "desc" },
+  });
+  // En inseminaciones antiguas el toro puede estar solo en la pajilla.
+  const toroServicio =
+    servicio?.toroId ??
+    (servicio?.pajillaId
+      ? ((await tx.pajilla.findUnique({ where: { id: servicio.pajillaId } }))?.toroId ?? null)
+      : null);
+  const toroId = (d.toroId as string | null) ?? toroServicio;
+  const toro = toroId ? await tx.toro.findFirst({ where: { id: toroId, deletedAt: null } }) : null;
+  if (toroId && !toro)
+    throw new ErrorNegocio("Revisa los datos.", { toroId: "El toro no existe." });
+
+  const parto = await tx.parto.create({
+    data: {
+      hembraId: h.id,
+      fecha,
+      tipo: d.tipo as "NORMAL" | "ASISTIDO",
+      servicioId: servicio?.id ?? null,
+      toroId: toro?.id ?? null,
+      observaciones: (d.observaciones as string | null) ?? null,
+    },
+  });
+  await aplicar(tx, h, { tipo: "PARTO" }, "PARTO", parto.id, fecha, { partoId: parto.id });
+
+  const madre = await tx.animal.findUniqueOrThrow({ where: { id: h.id } });
+  // Raza de la cría: la de los padres si coinciden; si no, se completa después.
+  const razaId = toro?.razaId && toro.razaId === madre.razaId ? madre.razaId : null;
+  const errores: Record<string, string> = {};
+  const crias: AnimalNuevo[] = [];
+  for (let i = 1; i <= Number(d.numeroCrias ?? 0); i++) {
+    const numero = String(d[`cria${i}_numero`]).trim();
+    if (await tx.animal.findUnique({ where: { numero } }))
+      errores[`cria${i}_numero`] = "Ya existe un animal con ese número.";
+    crias.push({
+      numero,
+      nombre: (d[`cria${i}_nombre`] as string | null) ?? null,
+      especie: "BOVINO",
+      sexo: d[`cria${i}_sexo`] as "HEMBRA" | "MACHO",
+      razaId,
+      fechaNacimiento: fecha,
+      fechaNacimientoEstimada: false,
+      origen: "NACIDO",
+      fechaIngreso: fecha,
+      pesoNacimientoKg: (d[`cria${i}_peso`] as string | null) ?? null,
+      madreId: h.id,
+      padreId: toro?.id ?? null,
+      partoId: parto.id,
+      loteId: null,
+      potreroId: null,
+      observaciones: null,
+      estadoReproductivo: null,
+      numeroPartos: 0,
+      enProduccion: false,
+      valorCompra: null,
+    });
+  }
+  if (Object.keys(errores).length) throw new ErrorNegocio("Revisa los datos.", errores);
+  for (const c of crias) await insertarAnimal(tx, c);
+  return parto.id;
+}
+
+// ─── Aborto, secado y descarte ───────────────────────────────────────────────
+
+export async function registrarAborto(tx: Tx, valores: unknown): Promise<string> {
+  const d = esquemaAborto.parse(valores) as Record<string, unknown>;
+  const h = await cargarHembra(tx, String(d.hembraId));
+  const fecha = d.fecha as Date;
+  await validarFecha(tx, h, fecha);
+  let diasGestacion = (d.diasGestacion as number | null) ?? null;
+  if (diasGestacion == null) {
+    const diag = await tx.diagnosticoPrenez.findFirst({
+      where: {
+        hembraId: h.id,
+        deletedAt: null,
+        resultado: "PRENADA",
+        fechaProbableParto: { not: null },
+      },
+      orderBy: { fecha: "desc" },
+    });
+    if (diag?.fechaProbableParto) {
+      const config = await obtenerConfiguracionFinca();
+      const dias = diasGestacionA(
+        diag.fechaProbableParto,
+        fecha,
+        config.reproduccion.diasGestacion,
+      );
+      diasGestacion = dias > 0 && dias <= 300 ? dias : null;
+    }
+  }
+  const aborto = await tx.aborto.create({
+    data: {
+      hembraId: h.id,
+      fecha,
+      causa: (d.causa as string | null) ?? null,
+      diasGestacion,
+      observaciones: (d.observaciones as string | null) ?? null,
+    },
+  });
+  await aplicar(tx, h, { tipo: "ABORTO" }, "ABORTO", aborto.id, fecha);
+  return aborto.id;
+}
+
+export async function registrarSecado(tx: Tx, valores: unknown): Promise<string> {
+  const d = esquemaSecado.parse(valores) as Record<string, unknown>;
+  const h = await cargarHembra(tx, String(d.hembraId));
+  const fecha = d.fecha as Date;
+  await validarFecha(tx, h, fecha);
+  if (h.lactancia && fecha < h.lactancia.fechaInicio)
+    throw new ErrorNegocio("Revisa los datos.", {
+      fecha: `La lactancia empezó el ${formatoFecha(h.lactancia.fechaInicio)}.`,
+    });
+  const secado = await tx.secado.create({
+    data: {
+      hembraId: h.id,
+      fecha,
+      lactanciaId: h.lactancia?.id ?? null,
+      observaciones: (d.observaciones as string | null) ?? null,
+    },
+  });
+  await aplicar(tx, h, { tipo: "SECADO" }, "SECADO", secado.id, fecha);
+  return secado.id;
+}
+
+export async function registrarDescarte(tx: Tx, valores: unknown): Promise<string> {
+  const d = esquemaDescarte.parse(valores) as Record<string, unknown>;
+  const h = await cargarHembra(tx, String(d.hembraId));
+  const fecha = d.fecha as Date;
+  await validarFecha(tx, h, fecha);
+  const motivo = String(d.motivo);
+  const descarte = await tx.descarteReproductivo.create({
+    data: { hembraId: h.id, fecha, motivo },
+  });
+  await aplicar(tx, h, { tipo: "DESCARTE" }, "DESCARTE", descarte.id, fecha, {
+    descartar: true,
+    motivo,
+  });
+  return descarte.id;
+}
+
+/** Toros activos y el padre propuesto por hembra (toro de su último servicio). */
+export async function opcionesParto(): Promise<{
+  opciones: Record<string, Opcion[]>;
+  padres: Record<string, string>;
+}> {
+  const [hembras, toros] = await Promise.all([
+    hembrasPara(permite("PARTO")),
+    prismaBase.toro.findMany({
+      where: { deletedAt: null, activo: true },
+      orderBy: { nombre: "asc" },
+    }),
+  ]);
+  const servicios = await prismaBase.servicio.findMany({
+    where: { hembraId: { in: hembras.map((h) => h.valor) }, deletedAt: null },
+    orderBy: { fecha: "asc" },
+    select: { hembraId: true, toroId: true, pajilla: { select: { toroId: true } } },
+  });
+  return {
+    opciones: {
+      hembras,
+      toros: toros.map((t) => ({
+        valor: t.id,
+        etiqueta: t.codigo ? `${t.nombre} (${t.codigo})` : t.nombre,
+      })),
+    },
+    padres: Object.fromEntries(
+      servicios
+        .map((s) => [s.hembraId, s.toroId ?? s.pajilla?.toroId ?? null])
+        .filter(([, t]) => t),
+    ),
+  };
+}

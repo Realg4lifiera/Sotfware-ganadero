@@ -1,0 +1,32 @@
+import type { Metadata } from "next";
+import { hoyISO } from "@/lib/fechas";
+import { valoresVacios } from "@/lib/formularios/campos";
+import { requierePermiso } from "@/lib/sesion";
+import { hembrasPara, permite } from "@/lib/servicios/reproduccion";
+import { CAMPOS_ABORTO } from "@/lib/validaciones/reproduccion";
+import { EncabezadoPagina } from "@/components/layout/encabezado-pagina";
+import { FormularioAborto } from "../../formularios";
+
+export const metadata: Metadata = { title: "Registrar aborto" };
+
+export default async function Nuevo({ searchParams }: PageProps<"/reproduccion/abortos/nuevo">) {
+  await requierePermiso("reproduccion:registrar");
+  const { hembra } = await searchParams;
+  return (
+    <>
+      <EncabezadoPagina
+        titulo="Registrar aborto"
+        descripcion="Solo hembras preñadas o secas."
+        volver={{ href: "/reproduccion/abortos", texto: "Abortos" }}
+      />
+      <FormularioAborto
+        valores={{
+          ...valoresVacios(CAMPOS_ABORTO),
+          fecha: hoyISO(),
+          hembraId: typeof hembra === "string" ? hembra : "",
+        }}
+        opcionesDinamicas={{ hembras: await hembrasPara(permite("ABORTO")) }}
+      />
+    </>
+  );
+}
