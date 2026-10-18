@@ -9,6 +9,7 @@ import { requierePermiso } from "@/lib/sesion";
 import { TITULO_ALERTA, type TipoAlerta } from "@/lib/dominio/alertas-reproductivas";
 import { informeDelMes } from "@/lib/servicios/costos";
 import { alertasDelHato } from "@/lib/servicios/indicadores-reproductivos";
+import { retirosVigentes } from "@/lib/servicios/sanidad";
 import { animalesConCategoria, obtenerConfiguracionFinca } from "@/lib/servicios/inventario";
 import { litrosDelPeriodo } from "@/lib/servicios/leche";
 import { Badge } from "@/components/ui/badge";
@@ -66,15 +67,18 @@ export default async function Tablero() {
   const usuario = await requierePermiso("tablero:ver");
   const verCostos = puede(usuario.rol, "costos:leer");
   const verRepro = puede(usuario.rol, "reproduccion:leer");
+  const verSanidad = puede(usuario.rol, "sanidad:leer");
   const mesISO = mesActualISO();
   const { desde, hasta } = rangoMes(mesISO);
-  const [animales, config, litros, informe, alertas] = await Promise.all([
+  const [animales, config, litros, informe, alertas, retiros] = await Promise.all([
     animalesConCategoria(),
     obtenerConfiguracionFinca(),
     litrosDelPeriodo(desde, hasta),
     verCostos ? informeDelMes(mesISO) : null,
     verRepro ? alertasDelHato() : [],
+    verSanidad ? retirosVigentes() : [],
   ]);
+  const enRetiroLeche = retiros.filter((r) => r.lecheHasta && r.enProduccion).length;
   const categorias = animales.map((a) => a.categoria);
   const { hato, otras, totalHato, totalOtras } = composicionHato(categorias, config.hato);
 
@@ -172,7 +176,9 @@ export default async function Tablero() {
                 <AlertTriangle className="text-warning size-5" /> Alertas
               </CardTitle>
               <CardDescription>
-                {verRepro ? "Reproducción del hato." : "Se activan con el módulo productivo."}
+                {verRepro || verSanidad
+                  ? "Reproducción y sanidad del hato."
+                  : "Sin alertas para tu rol."}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -192,7 +198,20 @@ export default async function Tablero() {
                       </li>
                     );
                   })}
-                {["Animales en retiro de leche", "Pesajes pendientes"].map((a) => (
+                {verSanidad && (
+                  <li>
+                    <Link
+                      href="/produccion/sanidad#retiros"
+                      className="bg-muted/60 hover:bg-muted flex items-center justify-between gap-2 rounded-md px-3 py-2"
+                    >
+                      Vacas en retiro de leche
+                      <Badge variant={enRetiroLeche ? "accent" : "secondary"}>
+                        {enRetiroLeche}
+                      </Badge>
+                    </Link>
+                  </li>
+                )}
+                {["Pesajes pendientes"].map((a) => (
                   <li
                     key={a}
                     className="bg-muted/60 flex items-center justify-between gap-2 rounded-md px-3 py-2"

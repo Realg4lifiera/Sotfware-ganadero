@@ -419,6 +419,7 @@ export const NAVEGACION: SeccionNav[] = [
         href: "/produccion/sanidad",
         icono: "sanidad",
         permisos: ["sanidad:leer"],
+        estado: "lista",
         descripcion: "Vacunas, desparasitaciones y tratamientos con retiros.",
         alcance: [
           "Evento por animal o por lote",

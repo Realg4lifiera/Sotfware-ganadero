@@ -841,7 +841,7 @@ function PestanaSanidad({ a }: { a: HojaVida }) {
       <EstadoVacio
         icono={Syringe}
         titulo="Sin eventos sanitarios"
-        descripcion="Vacunas, desparasitaciones y tratamientos (con sus retiros de leche y carne) se registrarán con el módulo de sanidad."
+        descripcion="Vacunas, desparasitaciones y tratamientos de este animal (los aplicados a todo su lote se ven en Producción › Sanidad)."
       />
     );
   }
@@ -857,7 +857,9 @@ function PestanaSanidad({ a }: { a: HojaVida }) {
             {[
               e.dosis,
               e.veterinario,
+              e.diagnostico,
               e.retiroLecheHasta && `retiro de leche hasta ${formatoFecha(e.retiroLecheHasta)}`,
+              e.retiroCarneHasta && `retiro de carne hasta ${formatoFecha(e.retiroCarneHasta)}`,
             ]
               .filter(Boolean)
               .join(" · ")}
