@@ -453,6 +453,7 @@ export const NAVEGACION: SeccionNav[] = [
         href: "/reportes/costos",
         icono: "costos",
         permisos: ["reportes:costos"],
+        estado: "lista",
         descripcion: "Costos por período, rubro, centro de costo, lote y animal.",
         alcance: ["Filtros por período, rubro y centro de costo", "Exportación a PDF y Excel"],
       },

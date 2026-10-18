@@ -23,6 +23,9 @@ export interface LineaCosto {
   rubroId: string;
   categoriaId: string | null;
   centroCostoId: string | null;
+  /** Lote o animal al que se asignó la compra (si se asignó). */
+  loteId?: string | null;
+  animalId?: string | null;
   monto: number;
 }
 
@@ -37,6 +40,8 @@ export interface EntradaCostos {
     centroCostoId: string;
     valorTotal: number;
     valorIva: number;
+    loteId?: string | null;
+    animalId?: string | null;
   }[];
   indirectos: {
     fecha: Date;
@@ -47,7 +52,7 @@ export interface EntradaCostos {
     centroCostoId: string | null;
     regla: DetalleRegla[] | null;
   }[];
-  nomina: { fecha: Date; costoTotal: number; centroCostoId: string }[];
+  nomina: { fecha: Date; costoTotal: number; centroCostoId: string; loteId?: string | null }[];
   activos: (ActivoDepreciable & { centroCostoId: string | null })[];
 }
 
@@ -64,6 +69,8 @@ export function lineasDelMes(e: EntradaCostos, mes: string): LineaCosto[] {
       rubroId: g.rubroId,
       categoriaId: g.categoriaId,
       centroCostoId: g.centroCostoId,
+      loteId: g.loteId ?? null,
+      animalId: g.animalId ?? null,
       monto: costoDeCompra({ valorTotal: g.valorTotal, valorIva: g.valorIva }, e.ivaEsCosto),
     });
   }
@@ -71,7 +78,11 @@ export function lineasDelMes(e: EntradaCostos, mes: string): LineaCosto[] {
   for (const c of e.indirectos) {
     const cuota = cuotaEnMes(c, mes);
     if (cuota <= 0) continue;
-    const base = { origen: "ADMINISTRATIVO" as const, rubroId: c.rubroId, categoriaId: c.categoriaId };
+    const base = {
+      origen: "ADMINISTRATIVO" as const,
+      rubroId: c.rubroId,
+      categoriaId: c.categoriaId,
+    };
     if (c.centroCostoId || !c.regla?.length) {
       lineas.push({ ...base, centroCostoId: c.centroCostoId, monto: cuota });
     } else {
@@ -88,6 +99,7 @@ export function lineasDelMes(e: EntradaCostos, mes: string): LineaCosto[] {
         rubroId: e.rubroManoObraId,
         categoriaId: null,
         centroCostoId: p.centroCostoId,
+        loteId: p.loteId ?? null,
         monto: p.costoTotal,
       });
     }
@@ -110,7 +122,10 @@ export function lineasDelMes(e: EntradaCostos, mes: string): LineaCosto[] {
 }
 
 /** Suma las líneas por una clave (rubro, centro, categoría…). */
-export function sumarPor<K extends keyof LineaCosto>(lineas: LineaCosto[], clave: K): Map<LineaCosto[K], number> {
+export function sumarPor<K extends keyof LineaCosto>(
+  lineas: LineaCosto[],
+  clave: K,
+): Map<LineaCosto[K], number> {
   const m = new Map<LineaCosto[K], number>();
   for (const l of lineas) m.set(l[clave], redondear((m.get(l[clave]) ?? 0) + l.monto));
   return m;

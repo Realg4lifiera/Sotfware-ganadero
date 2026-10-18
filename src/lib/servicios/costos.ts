@@ -27,6 +27,8 @@ async function cargarEntrada(mes: string): Promise<EntradaCostos> {
         centroCostoId: true,
         valorTotal: true,
         valorIva: true,
+        loteId: true,
+        animalId: true,
         categoria: { select: { rubroId: true } },
       },
     }),
@@ -39,7 +41,7 @@ async function cargarEntrada(mes: string): Promise<EntradaCostos> {
     }),
     prismaBase.pagoNomina.findMany({
       where: { deletedAt: null, fecha: { gte: desde, lt: hasta } },
-      select: { fecha: true, costoTotal: true, centroCostoId: true },
+      select: { fecha: true, costoTotal: true, centroCostoId: true, loteId: true },
     }),
     prismaBase.activo.findMany({ where: { deletedAt: null, fechaCompra: { lt: hasta } } }),
   ]);
@@ -55,6 +57,8 @@ async function cargarEntrada(mes: string): Promise<EntradaCostos> {
       centroCostoId: g.centroCostoId,
       valorTotal: n(g.valorTotal),
       valorIva: n(g.valorIva),
+      loteId: g.loteId,
+      animalId: g.animalId,
     })),
     indirectos: indirectos.map((c) => ({
       fecha: c.fecha,
@@ -73,6 +77,7 @@ async function cargarEntrada(mes: string): Promise<EntradaCostos> {
       fecha: p.fecha,
       costoTotal: n(p.costoTotal),
       centroCostoId: p.centroCostoId,
+      loteId: p.loteId,
     })),
     activos: activos.map((a) => ({
       valorCompra: n(a.valorCompra),
