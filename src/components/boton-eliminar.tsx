@@ -21,19 +21,29 @@ export function BotonEliminar({
   titulo,
   descripcion,
   destino,
+  compacto = false,
 }: {
   accion: () => Promise<ResultadoAccion<unknown>>;
   titulo: string;
   descripcion: string;
   destino: string;
+  /** Solo el ícono (para filas de listas). */
+  compacto?: boolean;
 }) {
   const [abierto, setAbierto] = useState(false);
   const [pendiente, iniciar] = useTransition();
   const router = useRouter();
   return (
     <>
-      <Button variant="ghost" className="text-destructive" onClick={() => setAbierto(true)}>
-        <Trash2 /> Eliminar
+      <Button
+        variant="ghost"
+        size={compacto ? "icon" : "default"}
+        className="text-destructive"
+        aria-label="Eliminar"
+        onClick={() => setAbierto(true)}
+      >
+        <Trash2 />
+        {!compacto && " Eliminar"}
       </Button>
       <Dialog open={abierto} onOpenChange={setAbierto}>
         <DialogContent>

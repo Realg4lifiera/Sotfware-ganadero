@@ -160,6 +160,7 @@ export default async function PaginaOrdenos({ searchParams }: PageProps<"/produc
                           titulo="¿Eliminar este total?"
                           descripcion={`${t.lote?.nombre} · ${formatoFecha(t.fecha)} · ${ETIQUETA_JORNADA[t.jornada]}`}
                           destino="/produccion/ordenos"
+                          compacto
                         />
                       )}
                     </span>

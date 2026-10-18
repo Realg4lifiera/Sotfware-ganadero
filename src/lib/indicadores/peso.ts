@@ -27,3 +27,27 @@ export function pesajesConGanancia<T extends PesoFechado>(
     gdpGramos: i === 0 ? null : gananciaDiariaGramos(ordenados[i - 1], p),
   }));
 }
+
+export interface ResumenGanancia {
+  pesoActual: number;
+  fechaUltimo: Date;
+  /** GDP entre los dos últimos pesajes. */
+  gdpUltimo: number | null;
+  /** GDP del primer al último pesaje registrado. */
+  gdpTotal: number | null;
+  pesajes: number;
+}
+
+/** Resumen de peso de un animal; null si no tiene pesajes. */
+export function resumenGanancia(pesajes: PesoFechado[]): ResumenGanancia | null {
+  if (pesajes.length === 0) return null;
+  const o = [...pesajes].sort((a, b) => a.fecha.getTime() - b.fecha.getTime());
+  const ultimo = o[o.length - 1];
+  return {
+    pesoActual: ultimo.pesoKg,
+    fechaUltimo: ultimo.fecha,
+    gdpUltimo: o.length > 1 ? gananciaDiariaGramos(o[o.length - 2], ultimo) : null,
+    gdpTotal: o.length > 1 ? gananciaDiariaGramos(o[0], ultimo) : null,
+    pesajes: o.length,
+  };
+}
