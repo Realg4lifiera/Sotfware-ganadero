@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   calcularCategoria,
   composicionHato,
+  configuracionCargaSchema,
   configuracionHatoSchema,
   leerConfiguracion,
+  unidadesAnimales,
   type DatosCategoria,
 } from "@/lib/dominio/categoria";
 import { fechaDesdeISO } from "@/lib/fechas";
@@ -73,5 +75,18 @@ describe("composicionHato", () => {
     expect(r.totalOtras).toBe(2);
     expect(r.hato[0]).toMatchObject({ cantidad: 3, porcentajeReal: 0.75, porcentajeIdeal: 0.5 });
     expect(r.otras.find((f) => f.categoria === "TORO")?.porcentajeReal).toBe(0.5);
+  });
+});
+
+describe("unidadesAnimales", () => {
+  it("suma las equivalencias por categoría", () => {
+    const ua = configuracionCargaSchema.parse({});
+    expect(
+      unidadesAnimales(
+        ["VACA_PRODUCCION", "VACA_PRODUCCION", "NOVILLA", "TERNERA_LACTANTE", "TORO"],
+        ua,
+      ),
+    ).toBe(4.2);
+    expect(unidadesAnimales([], ua)).toBe(0);
   });
 });

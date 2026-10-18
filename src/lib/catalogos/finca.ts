@@ -1,6 +1,6 @@
 /** Formulario de la finca: datos generales + parámetros del hato (en `configuracion`). */
 import type { DefCampo } from "@/lib/formularios/campos";
-import { ETIQUETA_CATEGORIA, CATEGORIAS_HATO } from "@/lib/dominio/categoria";
+import { CATEGORIAS, ETIQUETA_CATEGORIA, CATEGORIAS_HATO } from "@/lib/dominio/categoria";
 
 export const TIPOS_ORDENO = [
   "Manual",
@@ -119,3 +119,14 @@ export const CAMPOS_REPRODUCCION: DefCampo[] = [
     "Con cuánta anticipación se alerta un parto.",
   ),
 ];
+
+/** Unidades animales por categoría (en `configuracion.cargaAnimal`). */
+export const CAMPOS_CARGA: DefCampo[] = CATEGORIAS.map((c) => ({
+  nombre: `ua_${c}`,
+  etiqueta: ETIQUETA_CATEGORIA[c],
+  tipo: "decimal",
+  requerido: true,
+  min: 0,
+  max: 3,
+  sufijo: "UA",
+}));

@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Save } from "lucide-react";
 import { toast } from "sonner";
 import {
+  CAMPOS_CARGA,
   CAMPOS_COSTOS,
   CAMPOS_FINCA,
   CAMPOS_HATO,
@@ -120,6 +121,25 @@ export function FormularioFinca({ valores }: { valores: ValoresFormulario }) {
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {CAMPOS_REPRODUCCION.map((c) => (
+            <CampoFormulario
+              key={c.nombre}
+              campo={c}
+              register={register}
+              errores={errors}
+              valorInicial={valores[c.nombre]}
+            />
+          ))}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Carga animal</CardTitle>
+          <CardDescription>
+            Unidades animales (UA) por categoría para calcular UA/ha.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {CAMPOS_CARGA.map((c) => (
             <CampoFormulario
               key={c.nombre}
               campo={c}

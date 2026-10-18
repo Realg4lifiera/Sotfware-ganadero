@@ -397,6 +397,7 @@ export const NAVEGACION: SeccionNav[] = [
         href: "/produccion/rotacion",
         icono: "potrero",
         permisos: ["produccion:leer"],
+        estado: "lista",
         descripcion: "Ocupación de potreros, días de descanso y carga animal.",
         alcance: [
           "Entrada y salida de lotes",

@@ -3,12 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { accion } from "@/lib/accion";
 import {
+  CAMPOS_CARGA,
   CAMPOS_COSTOS,
   CAMPOS_FINCA,
   CAMPOS_HATO,
   CAMPOS_REPRODUCCION,
 } from "@/lib/catalogos/finca";
 import {
+  CATEGORIAS,
   CATEGORIAS_HATO,
   configuracionFincaSchema,
   leerConfiguracion,
@@ -23,6 +25,7 @@ export async function guardarFinca(valores: unknown): Promise<ResultadoAccion> {
       ...CAMPOS_HATO,
       ...CAMPOS_COSTOS,
       ...CAMPOS_REPRODUCCION,
+      ...CAMPOS_CARGA,
     ]).parse(valores) as Record<string, unknown>;
     const ideal = Object.fromEntries(CATEGORIAS_HATO.map((c) => [c, Number(datos[`ideal_${c}`])]));
     const suma = Object.values(ideal).reduce((a, b) => a + b, 0);
@@ -38,6 +41,7 @@ export async function guardarFinca(valores: unknown): Promise<ResultadoAccion> {
         porcentajeIdeal: ideal,
       },
       costos: { ivaEsCosto: datos.ivaEsCosto === true },
+      cargaAnimal: Object.fromEntries(CATEGORIAS.map((c) => [c, Number(datos[`ua_${c}`])])),
       reproduccion: Object.fromEntries(
         CAMPOS_REPRODUCCION.map((c) => [c.nombre, Number(datos[c.nombre])]),
       ),

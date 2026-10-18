@@ -17,6 +17,9 @@ export default async function PaginaFinca() {
     ...valoresDesdeRegistro(CAMPOS_FINCA, finca ?? {}),
     ivaEsCosto: config.costos.ivaEsCosto,
     ...Object.fromEntries(Object.entries(config.reproduccion).map(([c, v]) => [c, String(v)])),
+    ...Object.fromEntries(
+      Object.entries(config.cargaAnimal).map(([c, v]) => [`ua_${c}`, String(v).replace(".", ",")]),
+    ),
     edadDesteteMeses: String(config.hato.edadDesteteMeses),
     edadNovillaMeses: String(config.hato.edadNovillaMeses),
     ...Object.fromEntries(

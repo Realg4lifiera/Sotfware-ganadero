@@ -81,10 +81,29 @@ export const configuracionReproduccionSchema = z.object({
 });
 export type ConfiguracionReproduccion = z.infer<typeof configuracionReproduccionSchema>;
 
+/** Unidades animales (UA) por categoría para la carga animal (aprobado, configurable). */
+export const configuracionCargaSchema = z.object({
+  VACA_PRODUCCION: z.number().min(0).max(3).default(1),
+  VACA_SECA: z.number().min(0).max(3).default(1),
+  NOVILLA: z.number().min(0).max(3).default(0.7),
+  TERNERA: z.number().min(0).max(3).default(0.4),
+  TERNERA_LACTANTE: z.number().min(0).max(3).default(0.2),
+  MACHO_LEVANTE_CEBA: z.number().min(0).max(3).default(0.6),
+  TORO: z.number().min(0).max(3).default(1.3),
+  OTRA_ESPECIE: z.number().min(0).max(3).default(1),
+});
+export type ConfiguracionCarga = z.infer<typeof configuracionCargaSchema>;
+
+/** Unidades animales de un grupo de animales según su categoría. */
+export function unidadesAnimales(categorias: CategoriaAnimal[], ua: ConfiguracionCarga): number {
+  return Math.round(categorias.reduce((s, c) => s + ua[c], 0) * 100) / 100;
+}
+
 export const configuracionFincaSchema = z.object({
   hato: configuracionHatoSchema.prefault({}),
   costos: configuracionCostosSchema.prefault({}),
   reproduccion: configuracionReproduccionSchema.prefault({}),
+  cargaAnimal: configuracionCargaSchema.prefault({}),
 });
 export type ConfiguracionFinca = z.infer<typeof configuracionFincaSchema>;
 
