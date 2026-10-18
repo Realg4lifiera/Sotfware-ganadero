@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { KeyRound } from "lucide-react";
-import { prismaBase } from "@/lib/db";
+import { redirect } from "next/navigation";
 import { formatoFechaHora } from "@/lib/fechas";
 import { navegacionPara } from "@/lib/navegacion";
 import { ETIQUETA_ROL } from "@/lib/permisos";
+import { fincaActual, fincasAccesibles } from "@/lib/finca-sesion";
 import { requiereSesion } from "@/lib/sesion";
 import { ListaNavegacion } from "@/components/layout/lista-navegacion";
 import { Marca } from "@/components/layout/marca";
@@ -12,8 +13,11 @@ import { MenuDesplegable, MenuInferior } from "@/components/layout/navegacion-mo
 
 export default async function LayoutApp({ children }: LayoutProps<"/">) {
   const usuario = await requiereSesion();
-  const finca = await prismaBase.finca.findUnique({ where: { id: 1 }, select: { nombre: true } });
-  const nombreFinca = finca?.nombre ?? "Finca";
+  // Todo lo de esta sección es de una finca: sin finca elegida se va a "Mis fincas".
+  const finca = await fincaActual();
+  if (!finca) redirect("/fincas");
+  const nombreFinca = finca.nombre;
+  const variasFincas = (await fincasAccesibles(usuario)).length > 1;
   const secciones = navegacionPara(usuario.rol);
   const registrosRapidos = secciones.flatMap((s) => s.paginas).filter((p) => p.registroRapido);
   const rol = ETIQUETA_ROL[usuario.rol];
@@ -23,7 +27,7 @@ export default async function LayoutApp({ children }: LayoutProps<"/">) {
       {/* Escritorio: barra lateral */}
       <aside className="bg-sidebar text-sidebar-foreground sticky top-0 hidden h-dvh flex-col lg:flex print:hidden">
         <div className="border-sidebar-border border-b px-5 py-4">
-          <Marca nombreFinca={nombreFinca} />
+          <Marca nombreFinca={nombreFinca} cambiar={variasFincas} />
         </div>
         <div className="flex-1 overflow-y-auto">
           <ListaNavegacion secciones={secciones} />
@@ -36,9 +40,9 @@ export default async function LayoutApp({ children }: LayoutProps<"/">) {
       <div className="flex min-w-0 flex-col">
         {/* Celular: barra superior */}
         <header className="bg-sidebar text-sidebar-foreground sticky top-0 z-30 flex items-center gap-2 px-2 py-2 lg:hidden print:hidden">
-          <MenuDesplegable secciones={secciones} nombreFinca={nombreFinca} />
+          <MenuDesplegable secciones={secciones} nombreFinca={nombreFinca} cambiar={variasFincas} />
           <div className="min-w-0 flex-1">
-            <Marca nombreFinca={nombreFinca} />
+            <Marca nombreFinca={nombreFinca} cambiar={variasFincas} />
           </div>
           <MenuUsuario nombre={usuario.nombre} rol={rol} className="max-w-[40%]" />
         </header>

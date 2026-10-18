@@ -15,9 +15,11 @@ import { Marca } from "./marca";
 export function MenuDesplegable({
   secciones,
   nombreFinca,
+  cambiar = false,
 }: {
   secciones: SeccionNav[];
   nombreFinca: string;
+  cambiar?: boolean;
 }) {
   const [abierto, setAbierto] = useState(false);
   return (
@@ -28,7 +30,7 @@ export function MenuDesplegable({
       <SheetContent lado="left" className="bg-sidebar text-sidebar-foreground overflow-y-auto">
         <SheetTitle className="sr-only">Menú</SheetTitle>
         <div className="border-sidebar-border border-b px-5 py-4">
-          <Marca nombreFinca={nombreFinca} />
+          <Marca nombreFinca={nombreFinca} cambiar={cambiar} />
         </div>
         <ListaNavegacion secciones={secciones} alNavegar={() => setAbierto(false)} />
       </SheetContent>

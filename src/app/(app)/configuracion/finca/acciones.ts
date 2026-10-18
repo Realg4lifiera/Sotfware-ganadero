@@ -19,7 +19,7 @@ import { ErrorNegocio, type ResultadoAccion } from "@/lib/errores";
 import { esquemaDesdeCampos } from "@/lib/formularios/campos";
 
 export async function guardarFinca(valores: unknown): Promise<ResultadoAccion> {
-  const r = await accion("configuracion:gestionar", async ({ tx }) => {
+  const r = await accion("configuracion:gestionar", async ({ tx, fincaId }) => {
     const datos = esquemaDesdeCampos([
       ...CAMPOS_FINCA,
       ...CAMPOS_HATO,
@@ -32,7 +32,7 @@ export async function guardarFinca(valores: unknown): Promise<ResultadoAccion> {
     if (Math.abs(suma - 100) > 0.01) {
       throw new ErrorNegocio(`Los porcentajes ideales deben sumar 100 % (suman ${suma} %).`);
     }
-    const actual = await tx.finca.findUnique({ where: { id: 1 } });
+    const actual = await tx.finca.findUniqueOrThrow({ where: { id: fincaId! } });
     const configuracion = configuracionFincaSchema.parse({
       ...leerConfiguracion(actual?.configuracion),
       hato: {
@@ -52,11 +52,7 @@ export async function guardarFinca(valores: unknown): Promise<ResultadoAccion> {
       });
     }
     const general = Object.fromEntries(CAMPOS_FINCA.map((c) => [c.nombre, datos[c.nombre]]));
-    await tx.finca.upsert({
-      where: { id: 1 },
-      create: { id: 1, ...(general as { nombre: string }), configuracion },
-      update: { ...general, configuracion },
-    });
+    await tx.finca.update({ where: { id: actual.id }, data: { ...general, configuracion } });
   });
   if (r.ok) revalidatePath("/", "layout");
   return r;

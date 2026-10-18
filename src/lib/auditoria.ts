@@ -25,7 +25,10 @@ export interface ContextoAuditoria {
   tx?: Tx;
 }
 
-export const contextoAuditoria = new AsyncLocalStorage<ContextoAuditoria>();
+/** Único por proceso (ver el comentario de contextoFinca en lib/finca.ts). */
+export const contextoAuditoria = ((
+  globalThis as unknown as { contextoAuditoria?: AsyncLocalStorage<ContextoAuditoria> }
+).contextoAuditoria ??= new AsyncLocalStorage<ContextoAuditoria>());
 
 /** Modelos que no se auditan (la propia bitácora). */
 const SIN_AUDITORIA = new Set<string>(["Auditoria"]);

@@ -621,7 +621,7 @@ export async function registrarParto(tx: Tx, valores: unknown): Promise<string> 
   const crias: AnimalNuevo[] = [];
   for (let i = 1; i <= Number(d.numeroCrias ?? 0); i++) {
     const numero = String(d[`cria${i}_numero`]).trim();
-    if (await tx.animal.findUnique({ where: { numero } }))
+    if (await tx.animal.findFirst({ where: { numero } }))
       errores[`cria${i}_numero`] = "Ya existe un animal con ese número.";
     crias.push({
       numero,

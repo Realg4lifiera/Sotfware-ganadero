@@ -14,7 +14,7 @@ export default auth((req) => {
     return NextResponse.redirect(url);
   }
   if (req.auth && pathname === "/login") {
-    return NextResponse.redirect(new URL("/tablero", req.nextUrl.origin));
+    return NextResponse.redirect(new URL("/fincas", req.nextUrl.origin));
   }
   return NextResponse.next();
 });

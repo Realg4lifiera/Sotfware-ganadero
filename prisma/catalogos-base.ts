@@ -1,6 +1,7 @@
 /**
- * Catálogos base colombianos (razas, centros de costo, rubros y categorías de gasto
- * estilo Colanta, insumos). Los usan el seed de prueba y la carga inicial de producción.
+ * Catálogos base colombianos. Globales (compartidos por todas las fincas): razas, rubros y
+ * categorías de gasto estilo Colanta, insumos. Por finca: centros de costo. Los usan el
+ * seed de prueba, la carga inicial de producción y la creación de fincas.
  */
 import type { PrismaClient } from "../src/generated/prisma/client";
 
@@ -114,19 +115,34 @@ const CLAVES_CENTRO: Record<string, string> = {
   Ceba: "CEBA",
 };
 
-/** Crea los catálogos base (BD vacía). Devuelve mapas nombre → id. */
-export async function crearCatalogosBase(prisma: PrismaClient) {
+/** Cliente mínimo para crear los centros de costo (PrismaClient, tx auditado, etc.). */
+interface ClienteCentros {
+  centroCosto: {
+    create(args: {
+      data: { nombre: string; descripcion: string; clave: string | null };
+    }): PromiseLike<{ id: string; nombre: string }>;
+  };
+}
+
+/**
+ * Centros de costo de una finca nueva. Se crean uno a uno (la auditoría no admite
+ * createMany) y dentro del contexto de la finca (lib/finca.ts pone el fincaId).
+ */
+export async function crearCentrosFinca(prisma: ClienteCentros): Promise<Map<string, string>> {
+  const centros = new Map<string, string>();
+  for (const [nombre, descripcion] of CENTROS_COSTO) {
+    const c = await prisma.centroCosto.create({
+      data: { nombre, descripcion, clave: CLAVES_CENTRO[nombre] ?? null },
+    });
+    centros.set(c.nombre, c.id);
+  }
+  return centros;
+}
+
+/** Catálogos compartidos por todas las fincas (BD vacía). Devuelve mapas nombre → id. */
+export async function crearCatalogosGlobales(prisma: PrismaClient) {
   await prisma.raza.createMany({ data: RAZAS.map((nombre) => ({ nombre })) });
   const razas = new Map((await prisma.raza.findMany()).map((r) => [r.nombre, r.id]));
-
-  await prisma.centroCosto.createMany({
-    data: CENTROS_COSTO.map(([nombre, descripcion]) => ({
-      nombre,
-      descripcion,
-      clave: CLAVES_CENTRO[nombre] ?? null,
-    })),
-  });
-  const centros = new Map((await prisma.centroCosto.findMany()).map((c) => [c.nombre, c.id]));
 
   await prisma.rubroCosto.createMany({
     data: RUBROS.map(([nombre, grupo], orden) => ({
@@ -154,5 +170,5 @@ export async function crearCatalogosBase(prisma: PrismaClient) {
     })),
   });
 
-  return { razas, centros, rubros };
+  return { razas, rubros };
 }

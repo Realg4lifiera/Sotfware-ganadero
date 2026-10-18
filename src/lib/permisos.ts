@@ -4,7 +4,7 @@
  */
 import type { Rol } from "@/generated/prisma/enums";
 
-const TODOS: readonly Rol[] = ["ADMIN", "MAYORDOMO", "VETERINARIO", "CONTADOR"];
+const TODOS: readonly Rol[] = ["ADMIN", "MAYORDOMO", "VETERINARIO", "CONTADOR", "PROPIETARIO"];
 
 export const MATRIZ_PERMISOS = {
   "tablero:ver": TODOS,
@@ -15,14 +15,14 @@ export const MATRIZ_PERMISOS = {
   "animal:editar": ["ADMIN"],
   "animal:eliminar": ["ADMIN"],
   "animal:importar": ["ADMIN"],
-  "animal:exportar": ["ADMIN", "CONTADOR"],
+  "animal:exportar": ["ADMIN", "CONTADOR", "PROPIETARIO"],
   /** Traslados de lote y potrero. */
   "animal:trasladar": ["ADMIN", "MAYORDOMO"],
   /** Compra, venta, muerte y descarte. */
   "animal:movimiento": ["ADMIN"],
 
   // Módulo 2 — Reproductivo
-  "reproduccion:leer": ["ADMIN", "MAYORDOMO", "VETERINARIO"],
+  "reproduccion:leer": ["ADMIN", "MAYORDOMO", "VETERINARIO", "PROPIETARIO"],
   "reproduccion:registrar": ["ADMIN", "MAYORDOMO", "VETERINARIO"],
   /** Toros y pajillas. */
   "reproduccion:gestionar": ["ADMIN", "VETERINARIO"],
@@ -33,22 +33,22 @@ export const MATRIZ_PERMISOS = {
   "produccion:registrar": ["ADMIN", "MAYORDOMO"],
   /** Entregas y consumo interno de leche. */
   "leche:registrar": ["ADMIN", "MAYORDOMO"],
-  "sanidad:leer": ["ADMIN", "MAYORDOMO", "VETERINARIO"],
+  "sanidad:leer": ["ADMIN", "MAYORDOMO", "VETERINARIO", "PROPIETARIO"],
   "sanidad:registrar": ["ADMIN", "VETERINARIO"],
 
   // Módulo 1 — Costos
   /** Gastos de campo (compras menores). */
   "gasto:registrar": ["ADMIN", "MAYORDOMO"],
-  "costos:leer": ["ADMIN", "CONTADOR"],
+  "costos:leer": ["ADMIN", "CONTADOR", "PROPIETARIO"],
   /** Costos de sanidad y reproducción (para el veterinario). */
-  "costos:leer-sanidad": ["ADMIN", "CONTADOR", "VETERINARIO"],
+  "costos:leer-sanidad": ["ADMIN", "CONTADOR", "VETERINARIO", "PROPIETARIO"],
   "costos:gestionar": ["ADMIN"],
 
   // Módulo 4 — Reportes
-  "reportes:costos": ["ADMIN", "CONTADOR"],
-  "reportes:reproductivos": ["ADMIN", "CONTADOR", "VETERINARIO"],
-  "reportes:productivos": ["ADMIN", "CONTADOR"],
-  "reportes:inventario": ["ADMIN", "CONTADOR"],
+  "reportes:costos": ["ADMIN", "CONTADOR", "PROPIETARIO"],
+  "reportes:reproductivos": ["ADMIN", "CONTADOR", "VETERINARIO", "PROPIETARIO"],
+  "reportes:productivos": ["ADMIN", "CONTADOR", "PROPIETARIO"],
+  "reportes:inventario": ["ADMIN", "CONTADOR", "PROPIETARIO"],
 
   // Administración
   "configuracion:gestionar": ["ADMIN"],
@@ -75,4 +75,5 @@ export const ETIQUETA_ROL: Record<Rol, string> = {
   MAYORDOMO: "Mayordomo",
   VETERINARIO: "Veterinario",
   CONTADOR: "Contador",
+  PROPIETARIO: "Propietario",
 };

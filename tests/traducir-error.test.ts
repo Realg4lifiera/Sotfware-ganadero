@@ -17,3 +17,19 @@ describe("campoUnico", () => {
     expect(campoUnico(undefined)).toBeNull();
   });
 });
+
+describe("campoUnico con únicos por finca", () => {
+  it("ignora fincaId en el target, los campos y el nombre del índice", () => {
+    expect(campoUnico({ target: ["fincaId", "numero"] })).toBe("numero");
+    expect(
+      campoUnico({
+        driverAdapterError: { cause: { constraint: { fields: ['"fincaId"', '"nombre"'] } } },
+      }),
+    ).toBe("nombre");
+    expect(
+      campoUnico({
+        driverAdapterError: { cause: { constraint: { index: "Animal_fincaId_numero_key" } } },
+      }),
+    ).toBe("numero");
+  });
+});

@@ -10,6 +10,7 @@ import {
 } from "@/lib/etiquetas";
 import { hoy, mesesEntre } from "@/lib/fechas";
 import { prismaBase } from "@/lib/db";
+import { idFinca } from "@/lib/finca";
 import { animalesConCategoria, obtenerConfiguracionFinca } from "@/lib/servicios/inventario";
 import { ESTILO_ENCABEZADO } from "./libro";
 
@@ -18,7 +19,7 @@ export async function generarExcelInventario(): Promise<ArrayBuffer> {
   const [animales, config, finca] = await Promise.all([
     animalesConCategoria({}),
     obtenerConfiguracionFinca(),
-    prismaBase.finca.findUnique({ where: { id: 1 }, select: { nombre: true } }),
+    prismaBase.finca.findUnique({ where: { id: await idFinca() }, select: { nombre: true } }),
   ]);
   const madres = new Map(
     (

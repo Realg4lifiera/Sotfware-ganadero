@@ -1,5 +1,6 @@
 import "server-only";
 import { prismaBase } from "@/lib/db";
+import { idFinca } from "@/lib/finca";
 import {
   calcularCategoria,
   leerConfiguracion,
@@ -11,7 +12,7 @@ import type { Prisma } from "@/generated/prisma/client";
 
 export async function obtenerConfiguracionFinca(): Promise<ConfiguracionFinca> {
   const finca = await prismaBase.finca.findUnique({
-    where: { id: 1 },
+    where: { id: await idFinca() },
     select: { configuracion: true },
   });
   return leerConfiguracion(finca?.configuracion);

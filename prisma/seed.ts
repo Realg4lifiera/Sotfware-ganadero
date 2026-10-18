@@ -1,6 +1,8 @@
 /**
- * Datos de prueba: una finca, potreros, lotes, ~45 animales con genealogía coherente
- * (3 generaciones), toros y pajillas, un usuario por rol y catálogos colombianos.
+ * Datos de prueba: dos fincas. "Finca Campo Verde" con potreros, lotes, ~45 animales con
+ * genealogía coherente (3 generaciones), toros y pajillas; "Finca La Esperanza" más
+ * pequeña. Un usuario por rol (mayordomo, veterinario, contador y propietario con acceso a
+ * Campo Verde; el administrador ve todas) y catálogos colombianos compartidos.
  *
  * Las fechas son relativas al día en que se corre el seed, para que las edades y
  * categorías tengan sentido siempre. Ejecuta: `npm run db:reset` (BD vacía).
@@ -9,13 +11,18 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 import { PrismaClient, type EstadoReproductivo, type Sexo } from "../src/generated/prisma/client";
+import { conFinca, contextoFinca, extensionFinca } from "../src/lib/finca";
 import { calcularCategoria, type CategoriaAnimal } from "../src/lib/dominio/categoria";
 import { hoy } from "../src/lib/fechas";
-import { crearCatalogosBase } from "./catalogos-base";
+import { crearCatalogosGlobales, crearCentrosFinca } from "./catalogos-base";
 
-const prisma = new PrismaClient({
+// Con la extensión de finca: dentro de conFinca() cada registro queda en su finca.
+const base = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
 });
+const prisma = base.$extends(extensionFinca);
+/** Finca del contexto: las creaciones anidadas no pasan por la extensión y la llevan explícita. */
+const fincaSeed = () => contextoFinca.getStore()!.fincaId;
 
 const HOY = hoy();
 const haceDias = (d: number) => new Date(HOY.getTime() - d * 86_400_000);
@@ -91,15 +98,14 @@ const NACIMIENTOS: [string, string, Sexo, string, Toro, number][] = [
 const DURACION_LACTANCIA = 300;
 
 async function main() {
-  if (await prisma.finca.findUnique({ where: { id: 1 } })) {
+  if (await prisma.finca.findFirst()) {
     console.log("La base de datos ya tiene datos. Usa `npm run db:reset` para empezar de cero.");
     return;
   }
 
   // ── Finca, usuarios y catálogos ────────────────────────────────────────────
-  await prisma.finca.create({
+  const campoVerde = await prisma.finca.create({
     data: {
-      id: 1,
       nombre: "Finca Campo Verde",
       codigo: "P01",
       propietario: "Propietario de prueba",
@@ -132,10 +138,26 @@ async function main() {
       { nombre: "Mayordomo", usuario: "mayordomo", rol: "MAYORDOMO", passwordHash: hash },
       { nombre: "Veterinario", usuario: "veterinario", rol: "VETERINARIO", passwordHash: hash },
       { nombre: "Contador", usuario: "contador", rol: "CONTADOR", passwordHash: hash },
+      { nombre: "Propietario", usuario: "propietario", rol: "PROPIETARIO", passwordHash: hash },
     ],
   });
+  const laEsperanza = await prisma.finca.create({
+    data: {
+      nombre: "Finca La Esperanza",
+      codigo: "P02",
+      propietario: "Otro propietario de prueba",
+      departamento: "Antioquia",
+      municipio: "Entrerríos",
+      areaTotalHa: "18.00",
+      areaUtilHa: "15.00",
+      tipoOrdeno: "Manual",
+    },
+  });
+  // El administrador ve todas las fincas; los demás, Campo Verde.
+  for (const u of await prisma.usuario.findMany({ where: { rol: { not: "ADMIN" } } }))
+    await prisma.usuarioFinca.create({ data: { usuarioId: u.id, fincaId: campoVerde.id } });
 
-  const { razas, centros } = await crearCatalogosBase(prisma);
+  const { razas } = await crearCatalogosGlobales(base);
 
   await prisma.proveedor.createMany({
     data: [
@@ -148,6 +170,76 @@ async function main() {
   const proveedorGenetica = await prisma.proveedor.findUniqueOrThrow({
     where: { nombre: "Genética Bovina S.A.S." },
   });
+
+  await conFinca(laEsperanza.id, () => sembrarLaEsperanza(razas));
+  await conFinca(campoVerde.id, () => sembrarCampoVerde(razas, proveedorGenetica.id));
+}
+
+/** Finca pequeña de prueba para ver el aislamiento entre fincas. */
+async function sembrarLaEsperanza(razas: Map<string, string>) {
+  const centros = await crearCentrosFinca(prisma);
+  await prisma.comprador.create({ data: { nombre: "Cooperativa lechera", nit: "890900000-1" } });
+  const lote = await prisma.lote.create({ data: { nombre: "Lote único", proposito: "LECHERIA" } });
+  const potrero = await prisma.potrero.create({
+    data: { nombre: "El Llano", areaHa: "15.00", tipoPasto: "Kikuyo" },
+  });
+  await prisma.ocupacionPotrero.create({
+    data: { loteId: lote.id, potreroId: potrero.id, fechaEntrada: haceDias(10) },
+  });
+  const vacas: [string, string, number][] = [
+    ["101", "Paloma", 2],
+    ["102", "Luna", 3],
+    ["103", "Canela", 1],
+    ["104", "Estrella", 4],
+    ["105", "Morena", 2],
+  ];
+  for (const [numero, nombre, partos] of vacas) {
+    const a = await prisma.animal.create({
+      data: {
+        numero,
+        nombre,
+        sexo: "HEMBRA",
+        razaId: razas.get("Normando"),
+        fechaNacimiento: haceDias(365 * (2 + partos)),
+        origen: "COMPRADO",
+        fechaIngreso: haceDias(400),
+        loteId: lote.id,
+        potreroId: potrero.id,
+        estadoReproductivo: "PARIDA",
+        numeroPartos: partos,
+      },
+    });
+    await prisma.movimientoAnimal.create({
+      data: { animalId: a.id, tipo: "COMPRA", fecha: haceDias(400), valor: "4200000" },
+    });
+    await prisma.lactancia.create({
+      data: { vacaId: a.id, numero: partos, fechaInicio: haceDias(60 + (Number(numero) % 5) * 20) },
+    });
+  }
+  const comprador = await prisma.comprador.findFirstOrThrow();
+  for (let d = 1; d <= 20; d++)
+    await prisma.entregaLeche.create({
+      data: { fecha: haceDias(d), compradorId: comprador.id, litros: "62", precioLitro: "2150" },
+    });
+  const categoria = await prisma.categoriaGasto.findFirstOrThrow({
+    where: { nombre: "Sales mineralizadas" },
+  });
+  await prisma.gasto.create({
+    data: {
+      fecha: haceDias(12),
+      descripcion: "Sal mineralizada 8 %",
+      categoriaId: categoria.id,
+      centroCostoId: centros.get("Lechería")!,
+      cantidad: "4",
+      valorUnitario: "98000",
+      valorTotal: "392000",
+    },
+  });
+}
+
+/** Finca principal de prueba (los datos de siempre). */
+async function sembrarCampoVerde(razas: Map<string, string>, proveedorGeneticaId: string) {
+  const centros = await crearCentrosFinca(prisma);
   await prisma.comprador.createMany({
     data: [
       { nombre: "Cooperativa lechera", nit: "890900000-1" },
@@ -155,7 +247,7 @@ async function main() {
       { nombre: "Subasta ganadera" },
     ],
   });
-  const compradorGanado = await prisma.comprador.findUniqueOrThrow({
+  const compradorGanado = await prisma.comprador.findFirstOrThrow({
     where: { nombre: "Comprador de ganado particular" },
   });
 
@@ -191,9 +283,9 @@ async function main() {
       descripcion: "Reparto de costos indirectos entre centros de costo",
       detalles: {
         create: [
-          { centroCostoId: centros.get("Lechería")!, porcentaje: "75" },
-          { centroCostoId: centros.get("Cría y levante")!, porcentaje: "15" },
-          { centroCostoId: centros.get("Pasturas")!, porcentaje: "10" },
+          { fincaId: fincaSeed(), centroCostoId: centros.get("Lechería")!, porcentaje: "75" },
+          { fincaId: fincaSeed(), centroCostoId: centros.get("Cría y levante")!, porcentaje: "15" },
+          { fincaId: fincaSeed(), centroCostoId: centros.get("Pasturas")!, porcentaje: "10" },
         ],
       },
     },
@@ -290,13 +382,19 @@ async function main() {
         data: {
           toroId: toro.id,
           razaId: razas.get(t.raza),
-          proveedorId: proveedorGenetica.id,
+          proveedorId: proveedorGeneticaId,
           codigo: `${t.codigo}-L1`,
           ubicacionTermo: "Termo 1",
           existencias: 15,
           valorUnitario: "45000",
           movimientos: {
-            create: { tipo: "ENTRADA", fecha: haceDias(400), cantidad: 15, nota: "Compra inicial" },
+            create: {
+              fincaId: fincaSeed(),
+              tipo: "ENTRADA",
+              fecha: haceDias(400),
+              cantidad: 15,
+              nota: "Compra inicial",
+            },
           },
         },
       });
@@ -325,6 +423,7 @@ async function main() {
         fechaIngreso,
         movimientos: {
           create: {
+            fincaId: fincaSeed(),
             tipo: "COMPRA",
             fecha: fechaIngreso,
             valor: "4500000",
@@ -617,8 +716,10 @@ async function main() {
 
   const total = await prisma.animal.count();
   const activos = await prisma.animal.count({ where: { estado: "ACTIVO" } });
-  console.log(`Seed listo: ${total} animales (${activos} activos), 4 usuarios.`);
-  console.log(`Usuarios: admin, mayordomo, veterinario, contador — contraseña "${CLAVE_PRUEBA}".`);
+  console.log(`Seed listo: Campo Verde con ${total} animales (${activos} activos) y La Esperanza.`);
+  console.log(
+    `Usuarios: admin (todas las fincas), mayordomo, veterinario, contador y propietario (Campo Verde) — contraseña "${CLAVE_PRUEBA}".`,
+  );
 }
 
 main()
@@ -626,4 +727,4 @@ main()
     console.error(e);
     process.exit(1);
   })
-  .finally(() => prisma.$disconnect());
+  .finally(() => base.$disconnect());

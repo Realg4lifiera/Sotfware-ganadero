@@ -30,6 +30,8 @@ enum Rol {
   MAYORDOMO
   VETERINARIO
   CONTADOR
+  /// Dueño de una finca: solo lectura de su finca.
+  PROPIETARIO
 }
 
 enum Especie {
@@ -213,7 +215,7 @@ enum TipoEventoSanitario {
 
 /// Registro único (id = 1): una sola finca por instalación.
 model Finca {
-  id            Int      @id @default(1)
+  id            Int       @id @default(autoincrement())
   nombre        String
   codigo        String? /// Código de proveedor (p. ej. Colanta)
   propietario   String?
@@ -222,15 +224,55 @@ model Finca {
   departamento  String?
   municipio     String?
   vereda        String?
-  areaTotalHa   Decimal? @db.Decimal(10, 2)
-  areaUtilHa    Decimal? @db.Decimal(10, 2)
+  areaTotalHa   Decimal?  @db.Decimal(10, 2)
+  areaUtilHa    Decimal?  @db.Decimal(10, 2)
   tipoOrdeno    String?
   /// Reglas de categoría, % ideal del hato y otros parámetros (ver lib/dominio/categoria.ts).
-  configuracion Json     @default("{}")
-  createdAt     DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
+  configuracion Json      @default("{}")
+  activa        Boolean   @default(true)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
   createdById   String?
   updatedById   String?
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  usuarios               UsuarioFinca[]
+  potreros               Potrero[]
+  lotes                  Lote[]
+  animals                Animal[]
+  movimientoAnimals      MovimientoAnimal[]
+  adjuntos               Adjunto[]
+  auditorias             Auditoria[]
+  centroCostos           CentroCosto[]
+  compradors             Comprador[]
+  gastos                 Gasto[]
+  trabajadors            Trabajador[]
+  pagoNominas            PagoNomina[]
+  costoIndirectos        CostoIndirecto[]
+  reglaProrrateos        ReglaProrrateo[]
+  reglaProrrateoDetalles ReglaProrrateoDetalle[]
+  activos                Activo[]
+  ingresos               Ingreso[]
+  presupuestos           Presupuesto[]
+  toros                  Toro[]
+  pajillas               Pajilla[]
+  movimientoPajillas     MovimientoPajilla[]
+  celos                  Celo[]
+  servicios              Servicio[]
+  diagnosticoPrenezs     DiagnosticoPrenez[]
+  partos                 Parto[]
+  abortos                Aborto[]
+  secados                Secado[]
+  descarteReproductivos  DescarteReproductivo[]
+  historialReproductivos HistorialReproductivo[]
+  lactancias             Lactancia[]
+  registroOrdenos        RegistroOrdeno[]
+  entregaLeches          EntregaLeche[]
+  consumoInternoLeches   ConsumoInternoLeche[]
+  pesajes                Pesaje[]
+  ocupacionPotreros      OcupacionPotrero[]
+  suministroAlimentos    SuministroAlimento[]
+  eventoSanitarios       EventoSanitario[]
 }
 
 model Usuario {
@@ -249,11 +291,30 @@ model Usuario {
   updatedById      String?
 
   auditorias Auditoria[]
+  fincas     UsuarioFinca[]
+}
+
+/// Fincas a las que un usuario tiene acceso (el ADMIN ve todas sin necesitar filas aquí).
+model UsuarioFinca {
+  id          String    @id @default(cuid())
+  usuarioId   String
+  fincaId     Int
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime? @db.Timestamptz(3)
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  finca   Finca   @relation(fields: [fincaId], references: [id])
+
+  @@unique([usuarioId, fincaId])
 }
 
 model Potrero {
   id            String    @id @default(cuid())
-  nombre        String    @unique
+  fincaId       Int       @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
+  nombre        String
   areaHa        Decimal?  @db.Decimal(10, 2)
   tipoPasto     String?
   observaciones String?
@@ -268,11 +329,17 @@ model Potrero {
   movimientosOrigen  MovimientoAnimal[] @relation("PotreroOrigen")
   movimientosDestino MovimientoAnimal[] @relation("PotreroDestino")
   ocupaciones        OcupacionPotrero[]
+
+  finca Finca @relation(fields: [fincaId], references: [id])
+
+  @@unique([fincaId, nombre])
+  @@index([fincaId])
 }
 
 model Lote {
   id          String        @id @default(cuid())
-  nombre      String        @unique
+  fincaId     Int           @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
+  nombre      String
   proposito   PropositoLote
   descripcion String?
   activo      Boolean       @default(true)
@@ -292,6 +359,11 @@ model Lote {
   ocupaciones        OcupacionPotrero[]
   suministros        SuministroAlimento[]
   eventosSanitarios  EventoSanitario[]
+
+  finca Finca @relation(fields: [fincaId], references: [id])
+
+  @@unique([fincaId, nombre])
+  @@index([fincaId])
 }
 
 model Raza {
@@ -311,8 +383,9 @@ model Raza {
 
 model Animal {
   id                      String              @id @default(cuid())
+  fincaId                 Int                 @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   /// Número de chapeta. Único global: no se reutiliza ni tras borrado lógico.
-  numero                  String              @unique
+  numero                  String
   nombre                  String?
   especie                 Especie             @default(BOVINO)
   razaId                  String?
@@ -367,16 +440,21 @@ model Animal {
   pesajes                Pesaje[]
   eventosSanitarios      EventoSanitario[]
 
+  finca Finca @relation(fields: [fincaId], references: [id])
+
+  @@unique([fincaId, numero])
   @@index([loteId])
   @@index([potreroId])
   @@index([estado])
   @@index([madreId])
   @@index([padreId])
   @@index([nombre])
+  @@index([fincaId])
 }
 
 model MovimientoAnimal {
   id               String               @id @default(cuid())
+  fincaId          Int                  @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   animalId         String
   tipo             TipoMovimientoAnimal
   fecha            DateTime             @db.Date
@@ -405,14 +483,18 @@ model MovimientoAnimal {
   proveedor      Proveedor? @relation(fields: [proveedorId], references: [id])
   ingreso        Ingreso?
 
+  finca Finca @relation(fields: [fincaId], references: [id])
+
   @@index([animalId, fecha])
   @@index([fecha])
   @@index([tipo, fecha])
+  @@index([fincaId])
 }
 
 /// Archivo (foto o PDF) asociado a cualquier registro: entidad = nombre del modelo.
 model Adjunto {
   id            String    @id @default(cuid())
+  fincaId       Int       @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   clave         String    @unique
   nombreArchivo String
   tipoMime      String
@@ -426,12 +508,16 @@ model Adjunto {
   updatedById   String?
   deletedAt     DateTime? @db.Timestamptz(3)
 
+  finca Finca @relation(fields: [fincaId], references: [id])
+
   @@index([entidad, entidadId])
+  @@index([fincaId])
 }
 
 /// Bitácora de cambios. Solo se insertan filas; nunca se editan ni se borran.
 model Auditoria {
   id            String          @id @default(cuid())
+  fincaId       Int?
   fecha         DateTime        @default(now()) @db.Timestamptz(3)
   usuarioId     String?
   usuarioNombre String?
@@ -443,9 +529,12 @@ model Auditoria {
 
   usuario Usuario? @relation(fields: [usuarioId], references: [id])
 
+  finca Finca? @relation(fields: [fincaId], references: [id])
+
   @@index([entidad, entidadId])
   @@index([fecha])
   @@index([usuarioId, fecha])
+  @@index([fincaId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -454,10 +543,11 @@ model Auditoria {
 
 model CentroCosto {
   id          String    @id @default(cuid())
-  nombre      String    @unique
+  fincaId     Int       @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
+  nombre      String
   /// Centro que el sistema reconoce: LECHERIA (costo por litro de lechería), CRIA_LEVANTE y
   /// CEBA (costo por kilo ganado).
-  clave       String?   @unique
+  clave       String?
   descripcion String?
   activo      Boolean   @default(true)
   createdAt   DateTime  @default(now()) @db.Timestamptz(3)
@@ -473,6 +563,12 @@ model CentroCosto {
   activos           Activo[]
   ingresos          Ingreso[]
   presupuestos      Presupuesto[]
+
+  finca Finca @relation(fields: [fincaId], references: [id])
+
+  @@unique([fincaId, nombre])
+  @@unique([fincaId, clave])
+  @@index([fincaId])
 }
 
 /// Rubro del informe de costos (Alimentación, Pasturas, Mano de obra, Arriendos…).
@@ -533,7 +629,8 @@ model Proveedor {
 
 model Comprador {
   id          String    @id @default(cuid())
-  nombre      String    @unique
+  fincaId     Int       @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
+  nombre      String
   nit         String?
   telefono    String?
   email       String?
@@ -548,6 +645,11 @@ model Comprador {
   ingresos    Ingreso[]
   entregas    EntregaLeche[]
   movimientos MovimientoAnimal[]
+
+  finca Finca @relation(fields: [fincaId], references: [id])
+
+  @@unique([fincaId, nombre])
+  @@index([fincaId])
 }
 
 model Insumo {
@@ -571,6 +673,7 @@ model Insumo {
 /// Compra o gasto directo (formato "Ingresar compra" de Colanta).
 model Gasto {
   id            String       @id @default(cuid())
+  fincaId       Int          @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   fecha         DateTime     @db.Date
   categoriaId   String
   centroCostoId String
@@ -609,15 +712,19 @@ model Gasto {
   eventosSanitarios  EventoSanitario[]
   movimientosPajilla MovimientoPajilla[]
 
+  finca Finca @relation(fields: [fincaId], references: [id])
+
   @@index([fecha])
   @@index([centroCostoId, fecha])
   @@index([categoriaId, fecha])
   @@index([animalId, fecha])
   @@index([loteId, fecha])
+  @@index([fincaId])
 }
 
 model Trabajador {
   id           String       @id @default(cuid())
+  fincaId      Int          @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   nombre       String
   documento    String?
   telefono     String?
@@ -636,11 +743,16 @@ model Trabajador {
   deletedAt    DateTime?    @db.Timestamptz(3)
 
   pagos PagoNomina[]
+
+  finca Finca @relation(fields: [fincaId], references: [id])
+
+  @@index([fincaId])
 }
 
 /// Pago de nómina / mano de obra (registro de costo, no nómina electrónica DIAN).
 model PagoNomina {
   id                 String    @id @default(cuid())
+  fincaId            Int       @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   trabajadorId       String
   fecha              DateTime  @db.Date
   periodoInicio      DateTime? @db.Date
@@ -672,15 +784,19 @@ model PagoNomina {
   centroCosto CentroCosto @relation(fields: [centroCostoId], references: [id])
   lote        Lote?       @relation(fields: [loteId], references: [id])
 
+  finca Finca @relation(fields: [fincaId], references: [id])
+
   @@index([fecha])
   @@index([trabajadorId, fecha])
   @@index([centroCostoId, fecha])
+  @@index([fincaId])
 }
 
 /// Gasto administrativo / costo indirecto (predial, servicios, arriendo, financieros,
 /// transporte de leche, depreciación…). El valor cubre un período y se reparte por mes.
 model CostoIndirecto {
   id               String       @id @default(cuid())
+  fincaId          Int          @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   fecha            DateTime     @db.Date /// Inicio del período que cubre
   categoriaId      String
   periodicidad     Periodicidad @default(MENSUAL)
@@ -704,13 +820,17 @@ model CostoIndirecto {
   activo         Activo?         @relation(fields: [activoId], references: [id])
   proveedor      Proveedor?      @relation(fields: [proveedorId], references: [id])
 
+  finca Finca @relation(fields: [fincaId], references: [id])
+
   @@index([fecha])
   @@index([categoriaId, fecha])
+  @@index([fincaId])
 }
 
 model ReglaProrrateo {
   id          String    @id @default(cuid())
-  nombre      String    @unique
+  fincaId     Int       @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
+  nombre      String
   descripcion String?
   activo      Boolean   @default(true)
   createdAt   DateTime  @default(now()) @db.Timestamptz(3)
@@ -721,11 +841,17 @@ model ReglaProrrateo {
 
   detalles         ReglaProrrateoDetalle[]
   costosIndirectos CostoIndirecto[]
+
+  finca Finca @relation(fields: [fincaId], references: [id])
+
+  @@unique([fincaId, nombre])
+  @@index([fincaId])
 }
 
 /// Porcentaje de una regla asignado a un centro de costo (la suma debe ser 100).
 model ReglaProrrateoDetalle {
   id               String    @id @default(cuid())
+  fincaId          Int       @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   reglaProrrateoId String
   centroCostoId    String
   porcentaje       Decimal   @db.Decimal(5, 2)
@@ -738,12 +864,16 @@ model ReglaProrrateoDetalle {
   reglaProrrateo ReglaProrrateo @relation(fields: [reglaProrrateoId], references: [id])
   centroCosto    CentroCosto    @relation(fields: [centroCostoId], references: [id])
 
+  finca Finca @relation(fields: [fincaId], references: [id])
+
   @@unique([reglaProrrateoId, centroCostoId])
+  @@index([fincaId])
 }
 
 /// Maquinaria y equipos para calcular depreciación.
 model Activo {
   id            String    @id @default(cuid())
+  fincaId       Int       @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   nombre        String
   descripcion   String?
   valorCompra   Decimal   @db.Decimal(16, 2)
@@ -760,10 +890,15 @@ model Activo {
 
   centroCosto      CentroCosto?     @relation(fields: [centroCostoId], references: [id])
   costosIndirectos CostoIndirecto[]
+
+  finca Finca @relation(fields: [fincaId], references: [id])
+
+  @@index([fincaId])
 }
 
 model Ingreso {
   id                 String      @id @default(cuid())
+  fincaId            Int         @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   tipo               TipoIngreso
   /// Concepto libre: "Terneros", "Animales de descarte", "Venta leche 1ª quincena"…
   concepto           String
@@ -788,12 +923,16 @@ model Ingreso {
   movimientoAnimal MovimientoAnimal? @relation(fields: [movimientoAnimalId], references: [id])
   centroCosto      CentroCosto?      @relation(fields: [centroCostoId], references: [id])
 
+  finca Finca @relation(fields: [fincaId], references: [id])
+
   @@index([fecha])
   @@index([tipo, fecha])
+  @@index([fincaId])
 }
 
 model Presupuesto {
   id               String    @id @default(cuid())
+  fincaId          Int       @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   anio             Int
   mes              Int
   categoriaGastoId String
@@ -808,7 +947,10 @@ model Presupuesto {
   categoriaGasto CategoriaGasto @relation(fields: [categoriaGastoId], references: [id])
   centroCosto    CentroCosto?   @relation(fields: [centroCostoId], references: [id])
 
-  @@unique([anio, mes, categoriaGastoId, centroCostoId])
+  finca Finca @relation(fields: [fincaId], references: [id])
+
+  @@unique([fincaId, anio, mes, categoriaGastoId, centroCostoId])
+  @@index([fincaId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -817,6 +959,7 @@ model Presupuesto {
 
 model Toro {
   id            String    @id @default(cuid())
+  fincaId       Int       @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   nombre        String
   codigo        String? /// Código o registro genealógico
   razaId        String?
@@ -837,10 +980,15 @@ model Toro {
   pajillas  Pajilla[]
   servicios Servicio[]
   partos    Parto[]
+
+  finca Finca @relation(fields: [fincaId], references: [id])
+
+  @@index([fincaId])
 }
 
 model Pajilla {
   id             String    @id @default(cuid())
+  fincaId        Int       @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   toroId         String
   razaId         String?
   proveedorId    String?
@@ -861,10 +1009,15 @@ model Pajilla {
   proveedor   Proveedor?          @relation(fields: [proveedorId], references: [id])
   movimientos MovimientoPajilla[]
   servicios   Servicio[]
+
+  finca Finca @relation(fields: [fincaId], references: [id])
+
+  @@index([fincaId])
 }
 
 model MovimientoPajilla {
   id          String                @id @default(cuid())
+  fincaId     Int                   @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   pajillaId   String
   tipo        TipoMovimientoPajilla
   fecha       DateTime              @db.Date
@@ -883,11 +1036,15 @@ model MovimientoPajilla {
   servicio Servicio? @relation(fields: [servicioId], references: [id])
   gasto    Gasto?    @relation(fields: [gastoId], references: [id])
 
+  finca Finca @relation(fields: [fincaId], references: [id])
+
   @@index([pajillaId, fecha])
+  @@index([fincaId])
 }
 
 model Celo {
   id            String    @id @default(cuid())
+  fincaId       Int       @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   hembraId      String
   fechaHora     DateTime  @db.Timestamptz(3)
   observaciones String?
@@ -900,12 +1057,16 @@ model Celo {
   hembra   Animal    @relation(fields: [hembraId], references: [id])
   servicio Servicio?
 
+  finca Finca @relation(fields: [fincaId], references: [id])
+
   @@index([hembraId, fechaHora])
   @@index([fechaHora])
+  @@index([fincaId])
 }
 
 model Servicio {
   id             String       @id @default(cuid())
+  fincaId        Int          @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   hembraId       String
   fecha          DateTime     @db.Date
   tipo           TipoServicio
@@ -930,12 +1091,16 @@ model Servicio {
   diagnosticos      DiagnosticoPrenez[]
   partos            Parto[]
 
+  finca Finca @relation(fields: [fincaId], references: [id])
+
   @@index([hembraId, fecha])
   @@index([fecha])
+  @@index([fincaId])
 }
 
 model DiagnosticoPrenez {
   id                 String               @id @default(cuid())
+  fincaId            Int                  @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   hembraId           String
   fecha              DateTime             @db.Date
   metodo             MetodoDiagnostico
@@ -954,13 +1119,17 @@ model DiagnosticoPrenez {
   hembra   Animal    @relation(fields: [hembraId], references: [id])
   servicio Servicio? @relation(fields: [servicioId], references: [id])
 
+  finca Finca @relation(fields: [fincaId], references: [id])
+
   @@index([hembraId, fecha])
   @@index([fecha])
+  @@index([fincaId])
 }
 
 /// Cada cría se crea como Animal con partoId, madre y padre.
 model Parto {
   id            String    @id @default(cuid())
+  fincaId       Int       @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   hembraId      String
   fecha         DateTime  @db.Date
   tipo          TipoParto
@@ -979,12 +1148,16 @@ model Parto {
   crias     Animal[]   @relation("PartoCrias")
   lactancia Lactancia?
 
+  finca Finca @relation(fields: [fincaId], references: [id])
+
   @@index([hembraId, fecha])
   @@index([fecha])
+  @@index([fincaId])
 }
 
 model Aborto {
   id            String    @id @default(cuid())
+  fincaId       Int       @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   hembraId      String
   fecha         DateTime  @db.Date
   causa         String?
@@ -998,12 +1171,16 @@ model Aborto {
 
   hembra Animal @relation(fields: [hembraId], references: [id])
 
+  finca Finca @relation(fields: [fincaId], references: [id])
+
   @@index([hembraId, fecha])
   @@index([fecha])
+  @@index([fincaId])
 }
 
 model Secado {
   id            String    @id @default(cuid())
+  fincaId       Int       @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   hembraId      String
   fecha         DateTime  @db.Date
   lactanciaId   String?   @unique
@@ -1017,12 +1194,16 @@ model Secado {
   hembra    Animal     @relation(fields: [hembraId], references: [id])
   lactancia Lactancia? @relation(fields: [lactanciaId], references: [id])
 
+  finca Finca @relation(fields: [fincaId], references: [id])
+
   @@index([hembraId, fecha])
   @@index([fecha])
+  @@index([fincaId])
 }
 
 model DescarteReproductivo {
   id          String    @id @default(cuid())
+  fincaId     Int       @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   hembraId    String
   fecha       DateTime  @db.Date
   motivo      String
@@ -1034,7 +1215,10 @@ model DescarteReproductivo {
 
   hembra Animal @relation(fields: [hembraId], references: [id])
 
+  finca Finca @relation(fields: [fincaId], references: [id])
+
   @@index([hembraId, fecha])
+  @@index([fincaId])
 }
 
 /**
@@ -1044,6 +1228,7 @@ model DescarteReproductivo {
  */
 model HistorialReproductivo {
   id                 String                 @id @default(cuid())
+  fincaId            Int                    @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   hembraId           String
   fecha              DateTime               @db.Date
   tipo               TipoEventoReproductivo
@@ -1066,7 +1251,10 @@ model HistorialReproductivo {
 
   hembra Animal @relation(fields: [hembraId], references: [id])
 
+  finca Finca @relation(fields: [fincaId], references: [id])
+
   @@index([hembraId, fecha])
+  @@index([fincaId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1077,6 +1265,7 @@ model HistorialReproductivo {
 /// cierra un secado. "Vaca en producción" = lactancia con fechaFin nula.
 model Lactancia {
   id            String    @id @default(cuid())
+  fincaId       Int       @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   vacaId        String
   partoId       String?   @unique
   numero        Int
@@ -1094,13 +1283,17 @@ model Lactancia {
   secado  Secado?
   ordenos RegistroOrdeno[]
 
+  finca Finca @relation(fields: [fincaId], references: [id])
+
   @@index([vacaId, fechaInicio])
   @@index([fechaFin])
+  @@index([fincaId])
 }
 
 /// Ordeño de una vaca o de un lote completo (exactamente uno de los dos).
 model RegistroOrdeno {
   id          String    @id @default(cuid())
+  fincaId     Int       @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   fecha       DateTime  @db.Date
   jornada     Jornada
   litros      Decimal   @db.Decimal(10, 2)
@@ -1117,13 +1310,17 @@ model RegistroOrdeno {
   lote      Lote?      @relation(fields: [loteId], references: [id])
   lactancia Lactancia? @relation(fields: [lactanciaId], references: [id])
 
+  finca Finca @relation(fields: [fincaId], references: [id])
+
   @@unique([animalId, fecha, jornada])
   @@index([loteId, fecha])
   @@index([fecha])
+  @@index([fincaId])
 }
 
 model EntregaLeche {
   id          String    @id @default(cuid())
+  fincaId     Int       @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   fecha       DateTime  @db.Date
   compradorId String
   litros      Decimal   @db.Decimal(10, 2)
@@ -1137,12 +1334,16 @@ model EntregaLeche {
 
   comprador Comprador @relation(fields: [compradorId], references: [id])
 
+  finca Finca @relation(fields: [fincaId], references: [id])
+
   @@index([fecha])
+  @@index([fincaId])
 }
 
 /// Leche que no se vende: trabajadores, terneras, retiro (medicamentos) y arriendo.
 model ConsumoInternoLeche {
   id          String              @id @default(cuid())
+  fincaId     Int                 @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   fecha       DateTime            @db.Date
   destino     DestinoConsumoLeche
   litros      Decimal             @db.Decimal(10, 2)
@@ -1155,12 +1356,16 @@ model ConsumoInternoLeche {
   updatedById String?
   deletedAt   DateTime?           @db.Timestamptz(3)
 
+  finca Finca @relation(fields: [fincaId], references: [id])
+
   @@index([fecha])
   @@index([destino, fecha])
+  @@index([fincaId])
 }
 
 model Pesaje {
   id            String       @id @default(cuid())
+  fincaId       Int          @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   animalId      String
   fecha         DateTime     @db.Date
   pesoKg        Decimal      @db.Decimal(8, 2)
@@ -1177,14 +1382,18 @@ model Pesaje {
   animal Animal @relation(fields: [animalId], references: [id])
   lote   Lote?  @relation(fields: [loteId], references: [id])
 
+  finca Finca @relation(fields: [fincaId], references: [id])
+
   @@index([animalId, fecha])
   @@index([loteId, fecha])
   @@index([fecha])
+  @@index([fincaId])
 }
 
 /// Rotación: qué lote ocupa qué potrero y desde/hasta cuándo.
 model OcupacionPotrero {
   id            String    @id @default(cuid())
+  fincaId       Int       @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   loteId        String
   potreroId     String
   fechaEntrada  DateTime  @db.Date
@@ -1199,12 +1408,16 @@ model OcupacionPotrero {
   lote    Lote    @relation(fields: [loteId], references: [id])
   potrero Potrero @relation(fields: [potreroId], references: [id])
 
+  finca Finca @relation(fields: [fincaId], references: [id])
+
   @@index([potreroId, fechaEntrada])
   @@index([loteId, fechaEntrada])
+  @@index([fincaId])
 }
 
 model SuministroAlimento {
   id          String    @id @default(cuid())
+  fincaId     Int       @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   fecha       DateTime  @db.Date
   loteId      String
   insumoId    String
@@ -1222,13 +1435,17 @@ model SuministroAlimento {
   insumo Insumo @relation(fields: [insumoId], references: [id])
   gasto  Gasto? @relation(fields: [gastoId], references: [id])
 
+  finca Finca @relation(fields: [fincaId], references: [id])
+
   @@index([loteId, fecha])
   @@index([fecha])
+  @@index([fincaId])
 }
 
 /// Vacuna, desparasitación o tratamiento a un animal o a un lote (exactamente uno).
 model EventoSanitario {
   id               String              @id @default(cuid())
+  fincaId          Int                 @default(0) /// La pone la extensión de lib/finca.ts; 0 no existe: la FK rechaza registros sin finca.
   tipo             TipoEventoSanitario
   fecha            DateTime            @db.Date
   insumoId         String?
@@ -1254,8 +1471,11 @@ model EventoSanitario {
   lote   Lote?   @relation(fields: [loteId], references: [id])
   gasto  Gasto?  @relation(fields: [gastoId], references: [id])
 
+  finca Finca @relation(fields: [fincaId], references: [id])
+
   @@index([animalId, fecha])
   @@index([loteId, fecha])
   @@index([fecha])
   @@index([retiroLecheHasta])
+  @@index([fincaId])
 }

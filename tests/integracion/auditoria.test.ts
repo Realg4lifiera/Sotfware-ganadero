@@ -6,6 +6,7 @@
 import { describe, expect, it } from "vitest";
 import { contextoAuditoria, db } from "@/lib/auditoria";
 import { prismaBase } from "@/lib/db";
+import { conFinca } from "@/lib/finca";
 
 const habilitada = process.env.PRUEBAS_BD === "1";
 
@@ -17,36 +18,43 @@ describe.skipIf(!habilitada)("extensión de auditoría (BD)", () => {
     const nombre = `Raza prueba ${Date.now()}`;
     let comprobado = false;
 
+    const finca = await prismaBase.finca.findFirstOrThrow();
     await expect(
-      contextoAuditoria.run({ usuarioId: usuario.id, usuarioNombre: usuario.nombre }, () =>
-        db.$transaction(async (tx) => {
-          contextoAuditoria.getStore()!.tx = tx;
+      // La auditoría es por finca: se lee dentro de una.
+      conFinca(finca.id, () =>
+        contextoAuditoria.run({ usuarioId: usuario.id, usuarioNombre: usuario.nombre }, () =>
+          db.$transaction(async (tx) => {
+            contextoAuditoria.getStore()!.tx = tx;
 
-          const raza = await tx.raza.create({ data: { nombre } });
-          expect(raza.createdById).toBe(usuario.id);
+            const raza = await tx.raza.create({ data: { nombre } });
+            expect(raza.createdById).toBe(usuario.id);
 
-          await tx.raza.update({ where: { id: raza.id }, data: { nombre: `${nombre} (editada)` } });
-          await tx.raza.update({ where: { id: raza.id }, data: { activo: true } }); // sin cambios
-          await tx.raza.update({ where: { id: raza.id }, data: { deletedAt: new Date() } });
+            await tx.raza.update({
+              where: { id: raza.id },
+              data: { nombre: `${nombre} (editada)` },
+            });
+            await tx.raza.update({ where: { id: raza.id }, data: { activo: true } }); // sin cambios
+            await tx.raza.update({ where: { id: raza.id }, data: { deletedAt: new Date() } });
 
-          const registros = await tx.auditoria.findMany({
-            where: { entidad: "Raza", entidadId: raza.id },
-            orderBy: { fecha: "asc" },
-          });
-          expect(registros.map((r) => r.accion)).toEqual(["CREAR", "EDITAR", "ELIMINAR"]);
-          expect(registros[1].antes).toEqual({ nombre });
-          expect(registros[1].despues).toEqual({ nombre: `${nombre} (editada)` });
-          expect(registros.every((r) => r.usuarioId === usuario.id)).toBe(true);
+            const registros = await tx.auditoria.findMany({
+              where: { entidad: "Raza", entidadId: raza.id },
+              orderBy: { fecha: "asc" },
+            });
+            expect(registros.map((r) => r.accion)).toEqual(["CREAR", "EDITAR", "ELIMINAR"]);
+            expect(registros[1].antes).toEqual({ nombre });
+            expect(registros[1].despues).toEqual({ nombre: `${nombre} (editada)` });
+            expect(registros.every((r) => r.usuarioId === usuario.id)).toBe(true);
 
-          await expect(tx.raza.delete({ where: { id: raza.id } })).rejects.toThrow(
-            /no está permitido/,
-          );
-          await expect(tx.raza.updateMany({ data: { activo: false } })).rejects.toThrow(
-            /no está permitido/,
-          );
-          comprobado = true;
-          throw new Revertir();
-        }),
+            await expect(tx.raza.delete({ where: { id: raza.id } })).rejects.toThrow(
+              /no está permitido/,
+            );
+            await expect(tx.raza.updateMany({ data: { activo: false } })).rejects.toThrow(
+              /no está permitido/,
+            );
+            comprobado = true;
+            throw new Revertir();
+          }),
+        ),
       ),
     ).rejects.toBeInstanceOf(Revertir);
 
@@ -87,10 +95,12 @@ describe.skipIf(!habilitada)("traducción de errores de unicidad (BD)", () => {
   it("indica el campo duplicado", async () => {
     const { traducirError } = await import("@/lib/traducir-error");
     const usuario = await prismaBase.usuario.findFirstOrThrow({ where: { rol: "ADMIN" } });
-    const existente = await prismaBase.animal.findFirstOrThrow();
+    const finca = await prismaBase.finca.findFirstOrThrow({ orderBy: { id: "asc" } });
+    const existente = await conFinca(finca.id, () => prismaBase.animal.findFirstOrThrow());
     let resultado: unknown;
-    await contextoAuditoria
-      .run({ usuarioId: usuario.id, usuarioNombre: usuario.nombre }, () =>
+    // Misma chapeta en la misma finca (en otra finca sí se permite).
+    await conFinca(finca.id, () =>
+      contextoAuditoria.run({ usuarioId: usuario.id, usuarioNombre: usuario.nombre }, () =>
         db.$transaction(async (tx) => {
           contextoAuditoria.getStore()!.tx = tx;
           await tx.animal.create({
@@ -102,10 +112,10 @@ describe.skipIf(!habilitada)("traducción de errores de unicidad (BD)", () => {
             },
           });
         }),
-      )
-      .catch((e) => {
-        resultado = traducirError(e);
-      });
+      ),
+    ).catch((e) => {
+      resultado = traducirError(e);
+    });
     expect(resultado).toMatchObject({ error: "Ya existe un registro con ese número de chapeta." });
   });
 });

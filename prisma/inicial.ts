@@ -1,6 +1,6 @@
 /**
- * Carga inicial para PRODUCCIÓN (sin datos de prueba): la finca, el primer administrador
- * y los catálogos base. Uso:
+ * Carga inicial para PRODUCCIÓN (sin datos de prueba): la primera finca, el primer
+ * administrador y los catálogos base. Las demás fincas se crean desde la aplicación. Uso:
  *
  *   FINCA_NOMBRE="La Arboleda" ADMIN_CLAVE="una-clave-segura" npm run db:inicial
  *
@@ -12,11 +12,12 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { configuracionFincaSchema } from "../src/lib/dominio/categoria";
-import { crearCatalogosBase } from "./catalogos-base";
+import { conFinca, extensionFinca } from "../src/lib/finca";
+import { crearCatalogosGlobales, crearCentrosFinca } from "./catalogos-base";
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
-});
+}).$extends(extensionFinca);
 
 async function main() {
   const nombreFinca = process.env.FINCA_NOMBRE?.trim();
@@ -26,14 +27,16 @@ async function main() {
   if (clave.length < 8) throw new Error("ADMIN_CLAVE debe tener al menos 8 caracteres.");
   if (!/^[a-z0-9._-]{3,30}$/.test(usuario)) throw new Error("ADMIN_USUARIO no es válido.");
 
-  if (await prisma.finca.findUnique({ where: { id: 1 } })) {
-    console.log("La finca ya está configurada; no se hizo ningún cambio.");
+  if (await prisma.finca.findFirst()) {
+    console.log(
+      "Ya hay fincas configuradas; no se hizo ningún cambio. Las demás fincas se crean desde la aplicación (Mis fincas).",
+    );
     return;
   }
 
   await prisma.$transaction(async (tx) => {
-    await tx.finca.create({
-      data: { id: 1, nombre: nombreFinca, configuracion: configuracionFincaSchema.parse({}) },
+    const finca = await tx.finca.create({
+      data: { nombre: nombreFinca, configuracion: configuracionFincaSchema.parse({}) },
     });
     await tx.usuario.create({
       data: {
@@ -44,7 +47,9 @@ async function main() {
         debeCambiarClave: true,
       },
     });
-    await crearCatalogosBase(tx as unknown as PrismaClient);
+    await crearCatalogosGlobales(tx as unknown as PrismaClient);
+    // Los centros de costo son de la finca.
+    await conFinca(finca.id, () => crearCentrosFinca(tx));
   });
   console.log(
     `Listo: finca «${nombreFinca}», usuario administrador «${usuario}» y catálogos base.`,

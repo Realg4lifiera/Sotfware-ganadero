@@ -12,7 +12,7 @@ export interface EstadoLogin {
 /** Solo permite volver a rutas internas (evita redirecciones abiertas). */
 function destinoSeguro(desde: FormDataEntryValue | null): string {
   const d = typeof desde === "string" ? desde : "";
-  return d.startsWith("/") && !d.startsWith("//") && !d.startsWith("/login") ? d : "/tablero";
+  return d.startsWith("/") && !d.startsWith("//") && !d.startsWith("/login") ? d : "/fincas";
 }
 
 export async function iniciarSesion(

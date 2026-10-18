@@ -1,5 +1,6 @@
 import "server-only";
 import { prismaBase } from "@/lib/db";
+import { idFinca } from "@/lib/finca";
 import { rangoMes } from "@/lib/fechas";
 import {
   diasSolapados,
@@ -39,7 +40,7 @@ export async function indicadoresProductivosMes(mes: string) {
       where: { deletedAt: null, fechaInicio: { lt: hasta } },
       select: { fechaInicio: true, fechaFin: true },
     }),
-    prismaBase.finca.findUnique({ where: { id: 1 }, select: { areaUtilHa: true } }),
+    prismaBase.finca.findUnique({ where: { id: await idFinca() }, select: { areaUtilHa: true } }),
   ]);
 
   const costoTotal = Math.round(lineas.reduce((s, l) => s + l.monto, 0));

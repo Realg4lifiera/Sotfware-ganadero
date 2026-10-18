@@ -43,10 +43,15 @@ export const obtenerUsuarioActual = cache(async (): Promise<UsuarioActual | null
   };
 });
 
-/** Para páginas: exige sesión (o redirige a /login) y el permiso (o responde 403). */
+/**
+ * Para páginas de una finca: exige sesión (o redirige a /login), una finca elegida (o
+ * redirige a "Mis fincas") y el permiso (o responde 403).
+ */
 export async function requierePermiso(permiso: Permiso): Promise<UsuarioActual> {
   const usuario = await obtenerUsuarioActual();
   if (!usuario) redirect("/login");
+  const { fincaActual } = await import("@/lib/finca-sesion");
+  if (!(await fincaActual())) redirect("/fincas");
   if (!puede(usuario.rol, permiso)) forbidden();
   return usuario;
 }

@@ -2,10 +2,11 @@ import { generarExcelGastos } from "@/lib/excel/exportar-gastos";
 import { mesDesdeParametro, rangoMes } from "@/lib/fechas";
 import { puede } from "@/lib/permisos";
 import { obtenerUsuarioActual } from "@/lib/sesion";
+import { enFinca } from "@/lib/finca-sesion";
 
 const XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
-export async function GET(req: Request) {
+async function manejar(req: Request) {
   const usuario = await obtenerUsuarioActual();
   if (!usuario) return new Response("No autorizado", { status: 401 });
   if (!puede(usuario.rol, "costos:leer")) return new Response("Sin permiso", { status: 403 });
@@ -19,3 +20,6 @@ export async function GET(req: Request) {
     },
   });
 }
+
+/** Corre en la finca activa del usuario (lib/finca-sesion.ts). */
+export const GET = enFinca(manejar);

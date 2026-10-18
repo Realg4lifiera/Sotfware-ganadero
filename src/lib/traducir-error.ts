@@ -51,12 +51,21 @@ const ETIQUETA_CAMPO_UNICO: Record<string, string> = {
 
 /** Campo de una violación de unicidad (Prisma 7 con adaptador entrega el índice). */
 export function campoUnico(meta: Record<string, unknown> | undefined): string | null {
+  // Los únicos por finca (fincaId + campo) se reportan por el campo visible.
+  const sinFinca = (xs: unknown[]) =>
+    xs.map((x) => String(x).replace(/"/g, "")).filter((x) => x !== "fincaId");
   const target = meta?.target;
-  if (Array.isArray(target) && target.length === 1) return String(target[0]);
+  if (Array.isArray(target)) {
+    const t = sinFinca(target);
+    if (t.length === 1) return t[0];
+  }
   const causa = (
     meta?.driverAdapterError as { cause?: { constraint?: { index?: string; fields?: string[] } } }
   )?.cause?.constraint;
-  if (causa?.fields?.length === 1) return causa.fields[0].replace(/"/g, "");
-  const m = causa?.index ? /^[A-Za-z]+_(.+)_key$/.exec(causa.index) : null;
+  if (causa?.fields) {
+    const f = sinFinca(causa.fields);
+    if (f.length === 1) return f[0];
+  }
+  const m = causa?.index ? /^[A-Za-z]+_(?:fincaId_)?(.+)_key$/.exec(causa.index) : null;
   return m && !m[1].includes("_") ? m[1] : null;
 }

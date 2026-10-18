@@ -1,6 +1,7 @@
 import "server-only";
 import type { Tx } from "@/lib/auditoria";
 import { prismaBase } from "@/lib/db";
+import { idFinca } from "@/lib/finca";
 import { unidadesAnimales } from "@/lib/dominio/categoria";
 import { ErrorNegocio } from "@/lib/errores";
 import { diasEntre, formatoFecha, hoy } from "@/lib/fechas";
@@ -96,7 +97,7 @@ export async function estadoPotreros() {
     }),
     animalesConCategoria(),
     obtenerConfiguracionFinca(),
-    prismaBase.finca.findUnique({ where: { id: 1 }, select: { areaUtilHa: true } }),
+    prismaBase.finca.findUnique({ where: { id: await idFinca() }, select: { areaUtilHa: true } }),
   ]);
   const ua = config.cargaAnimal;
   const filas = potreros.map((p) => {

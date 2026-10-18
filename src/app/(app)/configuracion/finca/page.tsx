@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { prismaBase } from "@/lib/db";
+import { idFinca } from "@/lib/finca";
 import { CAMPOS_FINCA } from "@/lib/catalogos/finca";
 import { leerConfiguracion } from "@/lib/dominio/categoria";
 import { valoresDesdeRegistro } from "@/lib/formularios/campos";
@@ -11,7 +12,7 @@ export const metadata: Metadata = { title: "Finca" };
 
 export default async function PaginaFinca() {
   await requierePermiso("configuracion:gestionar");
-  const finca = await prismaBase.finca.findUnique({ where: { id: 1 } });
+  const finca = await prismaBase.finca.findUnique({ where: { id: await idFinca() } });
   const config = leerConfiguracion(finca?.configuracion);
   const valores = {
     ...valoresDesdeRegistro(CAMPOS_FINCA, finca ?? {}),

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const ROLES = ["ADMIN", "MAYORDOMO", "VETERINARIO", "CONTADOR"] as const;
+export const ROLES = ["ADMIN", "MAYORDOMO", "VETERINARIO", "CONTADOR", "PROPIETARIO"] as const;
 
 const clave = z
   .string()
