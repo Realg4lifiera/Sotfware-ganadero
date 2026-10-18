@@ -72,12 +72,13 @@ type Resolvedor = () => Promise<number | null>;
  * distintas, la extensión leería un contexto vacío.
  */
 const global_ = globalThis as unknown as {
-  contextoFinca?: AsyncLocalStorage<{ fincaId: number }>;
+  contextoFinca?: AsyncLocalStorage<{ fincaId: number | null }>;
   resolvedorFinca?: Resolvedor;
 };
 
+/** `fincaId: null` marca una acción global (usuarios, fincas): sin finca a propósito. */
 export const contextoFinca = (global_.contextoFinca ??= new AsyncLocalStorage<{
-  fincaId: number;
+  fincaId: number | null;
 }>());
 
 /** Lo registra lib/db.ts: obtiene la finca de la solicitud (cookie + acceso del usuario). */
@@ -142,6 +143,15 @@ export const extensionFinca = Prisma.defineExtension({
           case "upsert":
             a.where = conFiltro(a.where, fincaId);
             a.create = { ...a.create, fincaId };
+            break;
+          case "findMany":
+          case "findFirst":
+          case "count":
+            // La auditoría de acciones globales (sin finca) se ve desde todas las fincas.
+            a.where =
+              model === "Auditoria"
+                ? { AND: [a.where ?? {}, { OR: [{ fincaId }, { fincaId: null }] }] }
+                : conFiltro(a.where, fincaId);
             break;
           default:
             // find*, count, aggregate, groupBy, update*, delete*: siempre dentro de la finca.

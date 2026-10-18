@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { ColumnDef } from "@tanstack/react-table";
 import { KeyRound, MoreHorizontal, Pencil, Plus, Power } from "lucide-react";
@@ -47,12 +47,20 @@ export interface FilaUsuario {
   debeCambiarClave: boolean;
   ultimoAcceso: string;
   soyYo: boolean;
+  fincaIds: number[];
+  fincasEtiqueta: string;
+}
+
+export interface OpcionFinca {
+  id: number;
+  nombre: string;
+  activa: boolean;
 }
 
 type Dialogo =
   { tipo: "crear" } | { tipo: "editar"; fila: FilaUsuario } | { tipo: "clave"; fila: FilaUsuario };
 
-export function VistaUsuarios({ filas }: { filas: FilaUsuario[] }) {
+export function VistaUsuarios({ filas, fincas }: { filas: FilaUsuario[]; fincas: OpcionFinca[] }) {
   const [dialogo, setDialogo] = useState<Dialogo | null>(null);
   const [, iniciar] = useTransition();
 
@@ -73,6 +81,12 @@ export function VistaUsuarios({ filas }: { filas: FilaUsuario[] }) {
         ),
       },
       { id: "rol", header: "Rol", accessorKey: "rolEtiqueta" },
+      {
+        id: "fincas",
+        header: "Fincas",
+        accessorKey: "fincasEtiqueta",
+        meta: { ocultarEnMovil: true },
+      },
       {
         id: "ultimoAcceso",
         header: "Último acceso",
@@ -150,11 +164,14 @@ export function VistaUsuarios({ filas }: { filas: FilaUsuario[] }) {
       />
       <Dialog open={dialogo !== null} onOpenChange={(o) => !o && setDialogo(null)}>
         <DialogContent>
-          {dialogo?.tipo === "crear" && <FormularioCrear alTerminar={() => setDialogo(null)} />}
+          {dialogo?.tipo === "crear" && (
+            <FormularioCrear fincas={fincas} alTerminar={() => setDialogo(null)} />
+          )}
           {dialogo?.tipo === "editar" && (
             <FormularioEditar
               key={dialogo.fila.id}
               fila={dialogo.fila}
+              fincas={fincas}
               alTerminar={() => setDialogo(null)}
             />
           )}
@@ -198,17 +215,78 @@ function SelectRol(props: React.ComponentProps<"select">) {
   );
 }
 
-function FormularioCrear({ alTerminar }: { alTerminar: () => void }) {
+/** Casillas de fincas; el administrador entra a todas y no las ve. */
+function CampoFincas({
+  form,
+  fincas,
+}: {
+  // Ambos formularios (crear y editar) comparten estos dos campos.
+  form: UseFormReturn<{ rol: (typeof ROLES)[number]; fincaIds: number[] }>;
+  fincas: OpcionFinca[];
+}) {
+  const rol = form.watch("rol");
+  const elegidas = form.watch("fincaIds");
+  const error = form.formState.errors.fincaIds?.message;
+  if (rol === "ADMIN")
+    return (
+      <p className="text-muted-foreground text-sm sm:col-span-2">
+        El administrador entra a todas las fincas.
+      </p>
+    );
+  const alternar = (id: number, si: boolean) =>
+    form.setValue("fincaIds", si ? [...elegidas, id] : elegidas.filter((x) => x !== id), {
+      shouldValidate: form.formState.isSubmitted,
+    });
+  return (
+    <fieldset className="flex flex-col gap-1.5 sm:col-span-2">
+      <legend className="mb-1.5 text-sm font-medium">
+        Fincas <span className="text-destructive">*</span>
+      </legend>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {fincas.map((f) => (
+          <label key={f.id} className="flex min-h-9 items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="size-5 accent-[var(--primary)]"
+              checked={elegidas.includes(f.id)}
+              onChange={(e) => alternar(f.id, e.target.checked)}
+            />
+            {f.nombre}
+            {!f.activa && <span className="text-muted-foreground text-xs">(inactiva)</span>}
+          </label>
+        ))}
+      </div>
+      {error && <p className="text-destructive text-xs font-medium">{error}</p>}
+    </fieldset>
+  );
+}
+
+function FormularioCrear({
+  fincas,
+  alTerminar,
+}: {
+  fincas: OpcionFinca[];
+  alTerminar: () => void;
+}) {
+  const form = useForm({
+    resolver: zodResolver(crearUsuarioSchema),
+    defaultValues: {
+      nombre: "",
+      usuario: "",
+      email: "",
+      rol: "MAYORDOMO" as const,
+      clave: "",
+      // Con una sola finca, queda elegida.
+      fincaIds: fincas.length === 1 ? [fincas[0].id] : [],
+    },
+  });
   const {
     register,
     handleSubmit,
     getValues,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm({
-    resolver: zodResolver(crearUsuarioSchema),
-    defaultValues: { nombre: "", usuario: "", email: "", rol: "MAYORDOMO" as const, clave: "" },
-  });
+  } = form;
   return (
     <form
       noValidate
@@ -244,6 +322,7 @@ function FormularioCrear({ alTerminar }: { alTerminar: () => void }) {
         >
           <Input id="clave" type="text" autoComplete="off" {...register("clave")} />
         </Campo>
+        <CampoFincas form={form as never} fincas={fincas} />
       </div>
       <DialogFooter className="mt-6">
         <Button type="button" variant="outline" onClick={alTerminar}>
@@ -257,17 +336,31 @@ function FormularioCrear({ alTerminar }: { alTerminar: () => void }) {
   );
 }
 
-function FormularioEditar({ fila, alTerminar }: { fila: FilaUsuario; alTerminar: () => void }) {
+function FormularioEditar({
+  fila,
+  fincas,
+  alTerminar,
+}: {
+  fila: FilaUsuario;
+  fincas: OpcionFinca[];
+  alTerminar: () => void;
+}) {
+  const form = useForm({
+    resolver: zodResolver(editarUsuarioSchema),
+    defaultValues: {
+      nombre: fila.nombre,
+      email: fila.email,
+      rol: fila.rol,
+      fincaIds: fila.fincaIds,
+    },
+  });
   const {
     register,
     handleSubmit,
     getValues,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm({
-    resolver: zodResolver(editarUsuarioSchema),
-    defaultValues: { nombre: fila.nombre, email: fila.email, rol: fila.rol },
-  });
+  } = form;
   return (
     <form
       noValidate
@@ -294,6 +387,7 @@ function FormularioEditar({ fila, alTerminar }: { fila: FilaUsuario; alTerminar:
         <Campo id="rol" etiqueta="Rol" requerido error={errors.rol?.message}>
           <SelectRol id="rol" {...register("rol")} />
         </Campo>
+        <CampoFincas form={form as never} fincas={fincas} />
       </div>
       <DialogFooter className="mt-6">
         <Button type="button" variant="outline" onClick={alTerminar}>

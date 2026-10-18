@@ -22,7 +22,7 @@ const base = new PrismaClient({
 });
 const prisma = base.$extends(extensionFinca);
 /** Finca del contexto: las creaciones anidadas no pasan por la extensión y la llevan explícita. */
-const fincaSeed = () => contextoFinca.getStore()!.fincaId;
+const fincaSeed = () => contextoFinca.getStore()!.fincaId!;
 
 const HOY = hoy();
 const haceDias = (d: number) => new Date(HOY.getTime() - d * 86_400_000);

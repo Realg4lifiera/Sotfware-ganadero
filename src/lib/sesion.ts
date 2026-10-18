@@ -62,3 +62,10 @@ export async function requiereSesion(): Promise<UsuarioActual> {
   if (!usuario) redirect("/login");
   return usuario;
 }
+
+/** Para páginas de toda la instalación (fincas): exige sesión y permiso, no finca. */
+export async function requierePermisoGlobal(permiso: Permiso): Promise<UsuarioActual> {
+  const usuario = await requiereSesion();
+  if (!puede(usuario.rol, permiso)) forbidden();
+  return usuario;
+}

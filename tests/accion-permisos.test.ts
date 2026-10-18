@@ -85,4 +85,24 @@ describe("accion(): permisos en el servidor", () => {
     ]);
     expect(r).toEqual({ ok: true, datos: [1, 1] });
   });
+
+  it("las acciones globales corren sin finca aunque haya una elegida", async () => {
+    usuarioActual = usuario("ADMIN");
+    const { contextoFinca } = await import("@/lib/finca");
+    const r = await accion(
+      "finca:gestionar",
+      async ({ fincaId }) => [fincaId, contextoFinca.getStore()?.fincaId],
+      { global: true },
+    );
+    expect(r).toEqual({ ok: true, datos: [null, null] });
+  });
+
+  it.each(["MAYORDOMO", "CONTADOR", "PROPIETARIO"] as const)(
+    "%s no puede gestionar fincas",
+    async (rol) => {
+      usuarioActual = usuario(rol);
+      expect(await accion("finca:gestionar", fn, { global: true })).toMatchObject({ ok: false });
+      expect(fn).not.toHaveBeenCalled();
+    },
+  );
 });

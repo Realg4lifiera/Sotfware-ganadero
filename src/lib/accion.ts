@@ -44,14 +44,14 @@ export async function accion<T>(
         db.$transaction(
           async (tx) => {
             contextoAuditoria.getStore()!.tx = tx;
-            return fn({ usuario, fincaId: finca?.id ?? null, tx });
+            return fn({ usuario, fincaId: opciones.global ? null : finca!.id, tx });
           },
           { timeout: opciones.timeoutMs ?? 15_000, maxWait: 10_000 },
         ),
       );
-    const datos = finca
-      ? await contextoFinca.run({ fincaId: finca.id }, async () => await ejecutar())
-      : await ejecutar();
+    // Las acciones globales corren sin finca (su auditoría queda sin finca).
+    const fincaId = opciones.global ? null : finca!.id;
+    const datos = await contextoFinca.run({ fincaId }, async () => await ejecutar());
     return { ok: true, datos };
   } catch (e) {
     return traducirError(e);

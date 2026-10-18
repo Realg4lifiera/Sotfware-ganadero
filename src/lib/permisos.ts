@@ -53,6 +53,8 @@ export const MATRIZ_PERMISOS = {
   // Administración
   "configuracion:gestionar": ["ADMIN"],
   "usuario:gestionar": ["ADMIN"],
+  /** Crear, renombrar y desactivar fincas. */
+  "finca:gestionar": ["ADMIN"],
   "auditoria:leer": ["ADMIN"],
 } as const satisfies Record<string, readonly Rol[]>;
 

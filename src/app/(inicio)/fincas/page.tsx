@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AlertTriangle, ArrowRight, Beef, Droplets, Milk, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowRight, Beef, Droplets, Milk, Settings, Wallet } from "lucide-react";
 import { fincasAccesibles } from "@/lib/finca-sesion";
 import { nombreMes, mesActualISO } from "@/lib/fechas";
 import { formatoCOP, formatoLitros, formatoNumero, formatoPorcentaje } from "@/lib/formato";
+import { puede } from "@/lib/permisos";
 import { requiereSesion } from "@/lib/sesion";
 import { resumenFincas } from "@/lib/servicios/resumen-fincas";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EncabezadoPagina } from "@/components/layout/encabezado-pagina";
 import { EstadoVacio } from "@/components/estado-vacio";
@@ -46,6 +48,15 @@ export default async function MisFincas() {
       <EncabezadoPagina
         titulo="Mis fincas"
         descripcion={`Resumen de ${mes}. Entra a una finca para llevar su control.`}
+        acciones={
+          puede(usuario.rol, "finca:gestionar") && (
+            <Button asChild variant="outline">
+              <Link href="/fincas/gestionar">
+                <Settings /> Gestionar fincas
+              </Link>
+            </Button>
+          )
+        }
       />
       {resumen.length === 0 ? (
         <EstadoVacio

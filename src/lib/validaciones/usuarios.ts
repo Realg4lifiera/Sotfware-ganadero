@@ -18,22 +18,32 @@ export const usuarioBaseSchema = z.object({
   nombre: z.string().trim().min(2, "Escribe el nombre.").max(100),
   email,
   rol: z.enum(ROLES, { message: "Selecciona un rol." }),
+  /** Fincas a las que entra (el administrador entra a todas y se ignora). */
+  fincaIds: z.array(z.number().int().positive()).max(500).default([]),
 });
 
-export const crearUsuarioSchema = usuarioBaseSchema.extend({
-  usuario: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .regex(
-      /^[a-z0-9._-]{3,30}$/,
-      "Entre 3 y 30 caracteres: letras sin tildes, números, punto, guion.",
-    ),
-  clave,
-});
+/** Todo rol distinto de administrador necesita al menos una finca. */
+const exigirFinca = (d: { rol: string; fincaIds: number[] }, ctx: z.RefinementCtx) => {
+  if (d.rol !== "ADMIN" && d.fincaIds.length === 0)
+    ctx.addIssue({ code: "custom", path: ["fincaIds"], message: "Elige al menos una finca." });
+};
+
+export const crearUsuarioSchema = usuarioBaseSchema
+  .extend({
+    usuario: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .regex(
+        /^[a-z0-9._-]{3,30}$/,
+        "Entre 3 y 30 caracteres: letras sin tildes, números, punto, guion.",
+      ),
+    clave,
+  })
+  .superRefine(exigirFinca);
 export type CrearUsuario = z.input<typeof crearUsuarioSchema>;
 
-export const editarUsuarioSchema = usuarioBaseSchema;
+export const editarUsuarioSchema = usuarioBaseSchema.superRefine(exigirFinca);
 export type EditarUsuario = z.input<typeof editarUsuarioSchema>;
 
 export const restablecerClaveSchema = z.object({ clave });

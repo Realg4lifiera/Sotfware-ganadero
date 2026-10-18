@@ -513,6 +513,14 @@ export const NAVEGACION: SeccionNav[] = [
         estado: "lista",
       },
       {
+        titulo: "Todas las fincas",
+        href: "/fincas/gestionar",
+        icono: "finca",
+        permisos: ["finca:gestionar"],
+        descripcion: "Crear fincas, cambiarles el nombre o desactivarlas.",
+        estado: "lista",
+      },
+      {
         titulo: "Usuarios",
         href: "/configuracion/usuarios",
         icono: "usuarios",
