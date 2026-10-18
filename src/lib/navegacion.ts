@@ -337,6 +337,8 @@ export const NAVEGACION: SeccionNav[] = [
         href: "/produccion/ordenos",
         icono: "ordeno",
         permisos: ["produccion:leer"],
+        estado: "lista",
+        hrefRapido: "/produccion/ordenos/control",
         descripcion: "Litros por vaca o por lote en cada jornada.",
         alcance: ["Registro por vaca o por lote", "Jornada mañana, tarde o día completo"],
         registroRapido: true,
