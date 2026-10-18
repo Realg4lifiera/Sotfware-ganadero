@@ -74,6 +74,11 @@ const incluirHojaVida = {
   secados: { where: vivo, orderBy: { fecha: "desc" } },
   descartesReproductivos: { where: vivo, orderBy: { fecha: "desc" } },
   lactancias: { where: vivo, orderBy: { fechaInicio: "desc" } },
+  ordenos: {
+    where: vivo,
+    orderBy: { fecha: "asc" },
+    select: { fecha: true, litros: true, lactanciaId: true },
+  },
   pesajes: { where: vivo, orderBy: { fecha: "desc" } },
   eventosSanitarios: { where: vivo, orderBy: { fecha: "desc" } },
   gastos: {

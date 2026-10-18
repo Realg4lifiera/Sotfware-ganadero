@@ -33,7 +33,8 @@ import {
   ETIQUETA_TIPO_SERVICIO,
 } from "@/lib/etiquetas";
 import { diasEntre, edadTexto, formatoFecha, formatoFechaHora, hoy, hoyISO } from "@/lib/fechas";
-import { formatoCOP, formatoKg, formatoNumero } from "@/lib/formato";
+import { formatoCOP, formatoKg, formatoLitros, formatoNumero } from "@/lib/formato";
+import { produccionLactancia } from "@/lib/indicadores/lactancia";
 import { pesajesConGanancia } from "@/lib/indicadores/peso";
 import { puede, puedeAlguno } from "@/lib/permisos";
 import { requierePermiso } from "@/lib/sesion";
@@ -744,31 +745,55 @@ function PestanaProduccion({ a }: { a: HojaVida }) {
                     <TableHead>Inicio</TableHead>
                     <TableHead>Fin (secado)</TableHead>
                     <TableHead className="text-right">Días en leche</TableHead>
+                    <TableHead className="text-right">Producción</TableHead>
+                    <TableHead className="hidden text-right sm:table-cell">305 días</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {a.lactancias.map((l) => (
-                    <TableRow key={l.id}>
-                      <TableCell>{l.numero}</TableCell>
-                      <TableCell>{formatoFecha(l.fechaInicio)}</TableCell>
-                      <TableCell>
-                        {l.fechaFin ? (
-                          formatoFecha(l.fechaFin)
-                        ) : (
-                          <Badge variant="secondary">En curso</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {formatoNumero(diasEntre(l.fechaInicio, l.fechaFin ?? ref))}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {a.lactancias.map((l) => {
+                    const p = produccionLactancia(
+                      { inicio: l.fechaInicio, fin: l.fechaFin },
+                      a.ordenos
+                        .filter((o) => o.lactanciaId === l.id)
+                        .map((o) => ({ fecha: o.fecha, litros: Number(o.litros) })),
+                      ref,
+                    );
+                    return (
+                      <TableRow key={l.id}>
+                        <TableCell>{l.numero}</TableCell>
+                        <TableCell>{formatoFecha(l.fechaInicio)}</TableCell>
+                        <TableCell>
+                          {l.fechaFin ? (
+                            formatoFecha(l.fechaFin)
+                          ) : (
+                            <Badge variant="secondary">En curso</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatoNumero(diasEntre(l.fechaInicio, l.fechaFin ?? ref))}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {p.total == null ? "—" : formatoLitros(p.total)}
+                          {p.controles > 0 && (
+                            <span className="text-muted-foreground block text-xs">
+                              {p.controles} controles
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="hidden text-right tabular-nums sm:table-cell">
+                          {p.ajustada305 == null
+                            ? "—"
+                            : `${formatoLitros(p.ajustada305)}${p.proyectada ? " (proy.)" : ""}`}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
             <p className="text-muted-foreground mt-3 px-5 text-xs sm:px-0">
-              Los litros por ordeño y la producción ajustada a 305 días llegan con el módulo
-              productivo.
+              Producción estimada con los controles lecheros (pendiente de validar con el
+              veterinario).
             </p>
           </CardContent>
         </Card>

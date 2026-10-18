@@ -348,6 +348,7 @@ export const NAVEGACION: SeccionNav[] = [
         href: "/produccion/lactancias",
         icono: "lactancia",
         permisos: ["produccion:leer"],
+        estado: "lista",
         descripcion: "Curva de lactancia y producción ajustada a 305 días.",
         alcance: ["Días en leche", "Producción total y ajustada a 305 días"],
       },
