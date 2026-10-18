@@ -316,6 +316,7 @@ export const NAVEGACION: SeccionNav[] = [
         href: "/reproduccion/alertas",
         icono: "alerta",
         permisos: ["reproduccion:leer"],
+        estado: "lista",
         descripcion: "Partos próximos, vacas por secar, por diagnosticar y repetidoras.",
         alcance: [
           "Partos próximos",
@@ -451,6 +452,7 @@ export const NAVEGACION: SeccionNav[] = [
         href: "/reportes/reproductivos",
         icono: "reproduccion",
         permisos: ["reportes:reproductivos"],
+        estado: "lista",
         descripcion: "IEP, días abiertos, servicios por concepción y tasa de preñez.",
         alcance: [
           "Intervalo entre partos y días abiertos",

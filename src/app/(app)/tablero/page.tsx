@@ -6,7 +6,9 @@ import { formatoCOP, formatoLitros, formatoNumero, formatoPorcentaje } from "@/l
 import { formatoMes, hoy, mesActualISO, rangoMes } from "@/lib/fechas";
 import { puede } from "@/lib/permisos";
 import { requierePermiso } from "@/lib/sesion";
+import { TITULO_ALERTA, type TipoAlerta } from "@/lib/dominio/alertas-reproductivas";
 import { informeDelMes } from "@/lib/servicios/costos";
+import { alertasDelHato } from "@/lib/servicios/indicadores-reproductivos";
 import { animalesConCategoria, obtenerConfiguracionFinca } from "@/lib/servicios/inventario";
 import { litrosDelPeriodo } from "@/lib/servicios/leche";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +17,14 @@ import { EncabezadoPagina } from "@/components/layout/encabezado-pagina";
 import { TablaComposicion } from "@/components/tabla-composicion";
 
 export const metadata: Metadata = { title: "Tablero" };
+
+const ALERTAS_TABLERO: TipoAlerta[] = [
+  "PARTO_PROXIMO",
+  "POR_SECAR",
+  "PENDIENTE_DIAGNOSTICO",
+  "CELO_ESPERADO",
+  "VACIA_LARGA",
+];
 
 function Indicador({
   titulo,
@@ -55,13 +65,15 @@ function Indicador({
 export default async function Tablero() {
   const usuario = await requierePermiso("tablero:ver");
   const verCostos = puede(usuario.rol, "costos:leer");
+  const verRepro = puede(usuario.rol, "reproduccion:leer");
   const mesISO = mesActualISO();
   const { desde, hasta } = rangoMes(mesISO);
-  const [animales, config, litros, informe] = await Promise.all([
+  const [animales, config, litros, informe, alertas] = await Promise.all([
     animalesConCategoria(),
     obtenerConfiguracionFinca(),
     litrosDelPeriodo(desde, hasta),
     verCostos ? informeDelMes(mesISO) : null,
+    verRepro ? alertasDelHato() : [],
   ]);
   const categorias = animales.map((a) => a.categoria);
   const { hato, otras, totalHato, totalOtras } = composicionHato(categorias, config.hato);
@@ -160,18 +172,27 @@ export default async function Tablero() {
                 <AlertTriangle className="text-warning size-5" /> Alertas
               </CardTitle>
               <CardDescription>
-                Se activan con los módulos reproductivo y productivo.
+                {verRepro ? "Reproducción del hato." : "Se activan con el módulo productivo."}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <ul className="flex flex-col gap-2 text-sm">
-                {[
-                  "Partos próximos",
-                  "Vacas por secar",
-                  "Servidas pendientes de diagnóstico",
-                  "Animales en retiro de leche",
-                  "Pesajes pendientes",
-                ].map((a) => (
+                {verRepro &&
+                  ALERTAS_TABLERO.map((tipo) => {
+                    const n = alertas.filter((a) => a.tipo === tipo).length;
+                    return (
+                      <li key={tipo}>
+                        <Link
+                          href={`/reproduccion/alertas#${tipo.toLowerCase()}`}
+                          className="bg-muted/60 hover:bg-muted flex items-center justify-between gap-2 rounded-md px-3 py-2"
+                        >
+                          {TITULO_ALERTA[tipo]}
+                          <Badge variant={n ? "accent" : "secondary"}>{n}</Badge>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                {["Animales en retiro de leche", "Pesajes pendientes"].map((a) => (
                   <li
                     key={a}
                     className="bg-muted/60 flex items-center justify-between gap-2 rounded-md px-3 py-2"
