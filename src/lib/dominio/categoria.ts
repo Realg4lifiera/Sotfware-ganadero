@@ -64,9 +64,27 @@ export const configuracionCostosSchema = z.object({
   ivaEsCosto: z.boolean().default(true),
 });
 
+/** Parámetros reproductivos (aprobados: gestación 283 días, secado 60 días antes). */
+export const configuracionReproduccionSchema = z.object({
+  /** Días de gestación para la fecha probable de parto. */
+  diasGestacion: z.number().int().min(250).max(310).default(283),
+  /** Días antes del parto en que se debe secar la vaca. */
+  diasSecadoAntesParto: z.number().int().min(20).max(120).default(60),
+  /** Días después del servicio en que ya se puede diagnosticar la preñez. */
+  diasDiagnostico: z.number().int().min(20).max(120).default(35),
+  /** Duración del ciclo estral (celo esperado tras un servicio sin preñez). */
+  diasCiclo: z.number().int().min(15).max(30).default(21),
+  /** Días abiertos desde el parto a partir de los cuales la vaca vacía es alerta. */
+  diasAbiertosMax: z.number().int().min(30).max(400).default(120),
+  /** Ventana de alerta de partos próximos. */
+  diasAlertaParto: z.number().int().min(1).max(120).default(30),
+});
+export type ConfiguracionReproduccion = z.infer<typeof configuracionReproduccionSchema>;
+
 export const configuracionFincaSchema = z.object({
   hato: configuracionHatoSchema.prefault({}),
   costos: configuracionCostosSchema.prefault({}),
+  reproduccion: configuracionReproduccionSchema.prefault({}),
 });
 export type ConfiguracionFinca = z.infer<typeof configuracionFincaSchema>;
 

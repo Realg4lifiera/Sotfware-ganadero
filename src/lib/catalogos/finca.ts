@@ -74,3 +74,48 @@ export const CAMPOS_COSTOS: DefCampo[] = [
     ayuda: "Márcalo si la finca no recupera el IVA (no es responsable de IVA).",
   },
 ];
+
+const dias = (
+  nombre: string,
+  etiqueta: string,
+  min: number,
+  max: number,
+  ayuda: string,
+): DefCampo => ({
+  nombre,
+  etiqueta,
+  tipo: "entero",
+  requerido: true,
+  min,
+  max,
+  sufijo: "días",
+  ayuda,
+});
+
+/** Parámetros reproductivos (en `configuracion.reproduccion`). */
+export const CAMPOS_REPRODUCCION: DefCampo[] = [
+  dias("diasGestacion", "Días de gestación", 250, 310, "Para calcular la fecha probable de parto."),
+  dias("diasSecadoAntesParto", "Secar antes del parto", 20, 120, "Alerta «vacas por secar»."),
+  dias(
+    "diasDiagnostico",
+    "Diagnóstico tras el servicio",
+    20,
+    120,
+    "Desde cuándo se puede diagnosticar la preñez.",
+  ),
+  dias("diasCiclo", "Ciclo estral", 15, 30, "Celo esperado si el servicio no preñó."),
+  dias(
+    "diasAbiertosMax",
+    "Días abiertos máximos",
+    30,
+    400,
+    "Vacas vacías con más días desde el parto son alerta.",
+  ),
+  dias(
+    "diasAlertaParto",
+    "Aviso de parto próximo",
+    1,
+    120,
+    "Con cuánta anticipación se alerta un parto.",
+  ),
+];

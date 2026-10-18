@@ -16,6 +16,7 @@ export default async function PaginaFinca() {
   const valores = {
     ...valoresDesdeRegistro(CAMPOS_FINCA, finca ?? {}),
     ivaEsCosto: config.costos.ivaEsCosto,
+    ...Object.fromEntries(Object.entries(config.reproduccion).map(([c, v]) => [c, String(v)])),
     edadDesteteMeses: String(config.hato.edadDesteteMeses),
     edadNovillaMeses: String(config.hato.edadNovillaMeses),
     ...Object.fromEntries(
@@ -26,7 +27,7 @@ export default async function PaginaFinca() {
     <>
       <EncabezadoPagina
         titulo="Finca"
-        descripcion="Datos generales y reglas para clasificar el hato."
+        descripcion="Datos generales, reglas del hato, costos y parámetros reproductivos."
         volver={{ href: "/configuracion", texto: "Configuración" }}
       />
       <FormularioFinca valores={valores} />

@@ -286,6 +286,7 @@ export const NAVEGACION: SeccionNav[] = [
         href: "/reproduccion/pajillas",
         icono: "pajilla",
         permisos: ["reproduccion:leer"],
+        estado: "lista",
         descripcion: "Inventario del termo: entradas y usos de pajillas.",
         alcance: ["Existencias por toro", "Entradas, usos y ajustes"],
       },

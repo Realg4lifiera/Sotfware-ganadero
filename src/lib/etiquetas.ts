@@ -20,6 +20,7 @@ import type {
   TipoIngreso,
   TipoInsumo,
   TipoMovimientoAnimal,
+  TipoMovimientoPajilla,
   TipoParto,
   TipoServicio,
   UnidadMedida,
@@ -133,6 +134,12 @@ export const ETIQUETA_TIPO_INGRESO: Record<TipoIngreso, string> = {
 export const ETIQUETA_TIPO_SERVICIO: Record<TipoServicio, string> = {
   MONTA_NATURAL: "Monta natural",
   INSEMINACION: "Inseminación",
+};
+
+export const ETIQUETA_TIPO_MOVIMIENTO_PAJILLA: Record<TipoMovimientoPajilla, string> = {
+  ENTRADA: "Entrada",
+  USO: "Inseminación",
+  AJUSTE: "Ajuste",
 };
 
 export const ETIQUETA_METODO_DIAGNOSTICO: Record<MetodoDiagnostico, string> = {
