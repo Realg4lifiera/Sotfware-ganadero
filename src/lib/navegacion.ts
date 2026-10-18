@@ -490,6 +490,7 @@ export const NAVEGACION: SeccionNav[] = [
         href: "/reportes/inventario",
         icono: "inventario",
         permisos: ["reportes:inventario"],
+        estado: "lista",
         descripcion: "Inventario por categoría, lote y potrero, y su rotación mensual.",
         alcance: [
           "Composición del hato real vs. ideal",
