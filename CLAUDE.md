@@ -211,12 +211,24 @@ productor (pantalla + Excel); el tablero muestra litros y costo por litro del me
 - Pendiente del módulo: costo por kilo ganado y por animal/día (requieren pesajes e
   inventario histórico del Módulo 3).
 
-Siguiente: **Módulo 2 — Reproductivo** o **Módulo 3 — Productivo** (según prioridad del
-cliente).
+Hecho (Módulo 2 — Reproductivo): pajillas (inventario del termo), parámetros reproductivos
+en Finca, celos, servicios, diagnósticos, partos (crean las crías), abortos, secados,
+descartes, historia reproductiva en la hoja de vida, genealogía con alerta de
+consanguinidad, alertas (página + tablero) e indicadores con reporte y Excel.
 
-Notas para Módulo 2: el servicio reproductivo debe usar `aplicarEvento()` de
-`lib/dominio/reproduccion.ts` y aplicar sus efectos (estado, `numeroPartos`, abrir/cerrar
-`Lactancia`); el parto crea las crías con `insertarAnimal()` de `lib/servicios/animales.ts`.
+- **Todo evento reproductivo** pasa por `lib/servicios/reproduccion.ts` → `aplicar()`:
+  valida orden cronológico, aplica la máquina de estados, abre/cierra lactancia y escribe
+  `HistorialReproductivo` (situación anterior). Solo se anula **el último** evento de cada
+  hembra (`anularUltimoEvento`), que restaura todo (pajilla, lactancia, crías, vínculos).
+- Parámetros aprobados (configurables): gestación 283 días, secar 60 días antes del parto,
+  diagnóstico desde 35 días, ciclo 21, 120 días abiertos, aviso de parto 30 días.
+- Pajillas: solo inventario; el costo del semen entra por Compras (no se cuenta dos veces).
+- Descarte reproductivo = movimiento DESCARTE de Animales + motivo (queda descartada hasta
+  su venta). Crías nacidas muertas no se registran (se anotan en observaciones).
+- Indicadores reproductivos en `lib/indicadores/reproduccion.ts` (pendientes de validar).
+
+Siguiente: **Módulo 3 — Productivo** (ordeños y lactancias, pesajes, lotes y potreros,
+alimentación, sanidad); luego costo por kilo ganado y por animal/día del Módulo 1.
 
 ## Glosario de indicadores (PENDIENTES DE VALIDACIÓN con el veterinario)
 
