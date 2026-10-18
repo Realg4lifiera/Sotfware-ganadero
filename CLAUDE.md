@@ -245,9 +245,17 @@ ganado y por animal/día.
 - Retiros: un evento de lote cubre a sus animales; el de leche solo cuenta en vacas en
   producción.
 
-Siguiente: **Módulo 4 — Reportes** (reportes de costos filtrables, inventario y rotación
-mensual, exportación a PDF) y pendientes: alerta de pesajes pendientes (definir regla con
-el cliente), validar fórmulas del glosario con el veterinario.
+Hecho (Módulo 4 — Reportes): reporte de costos filtrable (rango de meses; por rubro,
+categoría, centro, lote, animal u origen), inventario con rotación mensual y composición
+por lote/potrero, y PDF de todos los reportes (`components/boton-pdf.tsx` + `@media print`
+en `globals.css`: imprimir con el navegador; marcar con `print:hidden` lo que no va al PDF).
+
+- La rotación toma como salida el primer movimiento de descarte, venta o muerte.
+- Las líneas del motor de costos llevan `loteId`/`animalId` cuando la compra o la nómina se
+  asignó a un lote o animal.
+
+Pendiente: alerta de pesajes pendientes (definir regla con el cliente), validar las fórmulas
+del glosario con el veterinario, conectar la base de datos de producción (Supabase/Neon).
 
 ## Glosario de indicadores (PENDIENTES DE VALIDACIÓN con el veterinario)
 
