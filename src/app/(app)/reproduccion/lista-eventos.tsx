@@ -20,7 +20,7 @@ export function ListaEventos({ filas, vacio }: { filas: FilaEvento[]; vacio: str
       {filas.map((f) => (
         <li key={f.id} className="flex items-center gap-2 px-4 py-3">
           <Link
-            href={`/animales/${f.hembraId}`}
+            href={`/animales/${f.hembraId}?pestana=reproduccion`}
             className="flex min-w-0 flex-1 flex-col hover:underline"
           >
             <span className="font-semibold tabular-nums">{f.hembra}</span>

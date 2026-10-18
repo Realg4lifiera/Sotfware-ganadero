@@ -303,6 +303,7 @@ export const NAVEGACION: SeccionNav[] = [
         href: "/reproduccion/genealogia",
         icono: "genealogia",
         permisos: ["reproduccion:leer"],
+        estado: "lista",
         descripcion: "Árbol genealógico y descendencia por toro.",
         alcance: [
           "Árbol de padres y abuelos",

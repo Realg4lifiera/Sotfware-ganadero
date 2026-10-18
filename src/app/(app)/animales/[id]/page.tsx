@@ -16,6 +16,7 @@ import {
   Info,
 } from "lucide-react";
 import { calcularCategoria, ETIQUETA_CATEGORIA } from "@/lib/dominio/categoria";
+import { eventosPermitidos, type TipoEventoReproductivo } from "@/lib/dominio/reproduccion";
 import {
   ETIQUETA_ESPECIE,
   ETIQUETA_ESTADO_ANIMAL,
@@ -27,6 +28,7 @@ import {
   ETIQUETA_SEXO,
   ETIQUETA_TIPO_EVENTO_SANITARIO,
   ETIQUETA_TIPO_MOVIMIENTO,
+  ETIQUETA_TIPO_EVENTO_REPRODUCTIVO,
   ETIQUETA_TIPO_PARTO,
   ETIQUETA_TIPO_SERVICIO,
 } from "@/lib/etiquetas";
@@ -55,6 +57,7 @@ import { EstadoVacio } from "@/components/estado-vacio";
 import { FotoAnimal } from "../foto-animal";
 import { BotonEliminarAnimal, BotonMovimiento } from "./acciones-animal";
 import { SubirFoto } from "./subir-foto";
+import { BotonAnular } from "../../reproduccion/boton-anular";
 
 export async function generateMetadata({ params }: PageProps<"/animales/[id]">): Promise<Metadata> {
   const { id } = await params;
@@ -64,6 +67,19 @@ export async function generateMetadata({ params }: PageProps<"/animales/[id]">):
   });
   return { title: a ? `${a.numero}${a.nombre ? ` · ${a.nombre}` : ""}` : "Animal" };
 }
+
+const PESTANAS = ["datos", "genealogia", "reproduccion", "produccion", "sanidad", "costos"];
+
+/** Ruta de cada evento reproductivo en el módulo de Reproducción. */
+const RUTA_EVENTO: Record<TipoEventoReproductivo, string> = {
+  CELO: "celos",
+  SERVICIO: "servicios",
+  DIAGNOSTICO: "diagnosticos",
+  PARTO: "partos",
+  ABORTO: "abortos",
+  SECADO: "secados",
+  DESCARTE: "descartes",
+};
 
 const fotoUrl = (clave: string | null) => (clave ? `/api/archivos/${clave}` : null);
 
@@ -76,9 +92,10 @@ function Dato({ etiqueta, children }: { etiqueta: string; children: React.ReactN
   );
 }
 
-export default async function HojaDeVida({ params }: PageProps<"/animales/[id]">) {
+export default async function HojaDeVida({ params, searchParams }: PageProps<"/animales/[id]">) {
   const usuario = await requierePermiso("animal:leer");
   const { id } = await params;
+  const { pestana } = await searchParams;
   const datos = await obtenerHojaVida(id);
   if (!datos) notFound();
   const { animal: a, hijosComoToro } = datos;
@@ -130,6 +147,27 @@ export default async function HojaDeVida({ params }: PageProps<"/animales/[id]">
   };
 
   const verRepro = puede(usuario.rol, "reproduccion:leer");
+  // Eventos reproductivos que se pueden registrar ahora y el último (para anularlo).
+  const hembraBovina = a.sexo === "HEMBRA" && a.especie === "BOVINO";
+  const registraRepro = hembraBovina && puede(usuario.rol, "reproduccion:registrar");
+  const permitidos =
+    registraRepro && a.estado === "ACTIVO"
+      ? eventosPermitidos({
+          estado: a.estadoReproductivo ?? "NOVILLA",
+          numeroPartos: a.numeroPartos,
+          lactanciaAbierta: !!lactanciaAbierta,
+        })
+      : [];
+  const accionesRepro = [...new Set(permitidos.map((e) => e.tipo))].map((t) => ({
+    tipo: t,
+    href: `/reproduccion/${RUTA_EVENTO[t]}/nuevo?hembra=${a.id}`,
+  }));
+  const ultimoEvento = registraRepro
+    ? await prismaBase.historialReproductivo.findFirst({
+        where: { hembraId: a.id, deletedAt: null },
+        orderBy: [{ fecha: "desc" }, { createdAt: "desc" }],
+      })
+    : null;
   const verProd = puede(usuario.rol, "produccion:leer");
   const verSanidad = puede(usuario.rol, "sanidad:leer");
   const verCostos = puedeAlguno(usuario.rol, ["costos:leer", "costos:leer-sanidad"]);
@@ -203,7 +241,9 @@ export default async function HojaDeVida({ params }: PageProps<"/animales/[id]">
         </div>
       </div>
 
-      <Tabs defaultValue="datos">
+      <Tabs
+        defaultValue={typeof pestana === "string" && PESTANAS.includes(pestana) ? pestana : "datos"}
+      >
         <TabsList>
           <TabsTrigger value="datos">
             <Info /> Datos
@@ -241,7 +281,17 @@ export default async function HojaDeVida({ params }: PageProps<"/animales/[id]">
         </TabsContent>
         {verRepro && (
           <TabsContent value="reproduccion">
-            <PestanaReproduccion a={a} hijosComoToro={hijosComoToro.length} />
+            <PestanaReproduccion
+              a={a}
+              hijosComoToro={hijosComoToro.length}
+              diasGestacion={config.reproduccion.diasGestacion}
+              acciones={accionesRepro}
+              ultimo={
+                ultimoEvento && {
+                  descripcion: `${ETIQUETA_TIPO_EVENTO_REPRODUCTIVO[ultimoEvento.tipo]} del ${formatoFecha(ultimoEvento.fecha)}.`,
+                }
+              }
+            />
           </TabsContent>
         )}
         {verProd && (
@@ -504,7 +554,19 @@ function PestanaGenealogia({
   );
 }
 
-function PestanaReproduccion({ a, hijosComoToro }: { a: HojaVida; hijosComoToro: number }) {
+function PestanaReproduccion({
+  a,
+  hijosComoToro,
+  diasGestacion,
+  acciones,
+  ultimo,
+}: {
+  a: HojaVida;
+  hijosComoToro: number;
+  diasGestacion: number;
+  acciones: { tipo: TipoEventoReproductivo; href: string }[];
+  ultimo: { descripcion: string } | null;
+}) {
   if (a.sexo === "MACHO") {
     return (
       <EstadoVacio
@@ -577,10 +639,19 @@ function PestanaReproduccion({ a, hijosComoToro }: { a: HojaVida; hijosComoToro:
   ].sort((x, y) => y.fecha.getTime() - x.fecha.getTime());
 
   const ultimoParto = a.partos[0];
+  const gestante = a.estadoReproductivo === "PRENADA" || a.estadoReproductivo === "SECA";
+  const fpp = gestante
+    ? a.diagnosticos.find((d) => d.resultado === "PRENADA" && d.fechaProbableParto)
+        ?.fechaProbableParto
+    : null;
+  const inicioCiclo = [ultimoParto?.fecha, a.abortos[0]?.fecha]
+    .filter((f): f is Date => !!f)
+    .sort((x, y) => y.getTime() - x.getTime())[0];
+  const serviciosCiclo = a.servicios.filter((s) => !inicioCiclo || s.fecha > inicioCiclo).length;
   return (
     <div className="flex flex-col gap-4">
       <Card>
-        <CardContent>
+        <CardContent className="flex flex-col gap-4">
           <dl className="grid grid-cols-2 gap-4 md:grid-cols-4">
             <Dato etiqueta="Estado reproductivo">
               {a.estadoReproductivo ? ETIQUETA_ESTADO_REPRODUCTIVO[a.estadoReproductivo] : null}
@@ -589,20 +660,44 @@ function PestanaReproduccion({ a, hijosComoToro }: { a: HojaVida; hijosComoToro:
             <Dato etiqueta="Último parto">
               {ultimoParto ? formatoFecha(ultimoParto.fecha) : null}
             </Dato>
-            <Dato etiqueta="Días desde el parto">
-              {ultimoParto ? formatoNumero(diasEntre(ultimoParto.fecha, hoy())) : null}
-            </Dato>
+            {gestante ? (
+              <Dato etiqueta="Parto probable">
+                {fpp
+                  ? `${formatoFecha(fpp)} (${diasGestacion - diasEntre(hoy(), fpp)} días de gestación)`
+                  : "Sin fecha"}
+              </Dato>
+            ) : (
+              <Dato etiqueta={ultimoParto ? "Días abiertos" : "Servicios del ciclo"}>
+                {ultimoParto
+                  ? `${formatoNumero(diasEntre(ultimoParto.fecha, hoy()))} · ${serviciosCiclo} servicios`
+                  : formatoNumero(serviciosCiclo)}
+              </Dato>
+            )}
           </dl>
-          <p className="text-muted-foreground mt-3 text-xs">
-            El registro de eventos (celos, servicios, diagnósticos, partos…) se habilita con el
-            módulo reproductivo. Aquí se ve el historial existente.
-          </p>
+          {(acciones.length > 0 || ultimo) && (
+            <div className="flex flex-wrap items-center gap-2">
+              {acciones.map((x) => (
+                <Button key={x.tipo} variant="outline" size="sm" asChild>
+                  <Link href={x.href}>{ETIQUETA_TIPO_EVENTO_REPRODUCTIVO[x.tipo]}</Link>
+                </Button>
+              ))}
+              {ultimo && (
+                <span className="ml-auto">
+                  <BotonAnular
+                    hembraId={a.id}
+                    descripcion={`Último evento: ${ultimo.descripcion}`}
+                    compacto
+                  />
+                </span>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
       {eventos.length === 0 ? (
         <EstadoVacio
           titulo="Sin eventos reproductivos"
-          descripcion="Aparecerán aquí con el módulo reproductivo."
+          descripcion="Registra el primer evento con los botones de arriba."
         />
       ) : (
         <ol className="border-border relative flex flex-col gap-3 border-l-2 pl-5">

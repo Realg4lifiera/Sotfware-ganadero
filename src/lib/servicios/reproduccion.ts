@@ -15,6 +15,7 @@ import {
   type EventoReproductivo,
   type SituacionHembra,
 } from "@/lib/dominio/reproduccion";
+import { alertasConsanguinidad } from "@/lib/dominio/genealogia";
 import { ErrorNegocio } from "@/lib/errores";
 import { ETIQUETA_ESTADO_REPRODUCTIVO } from "@/lib/etiquetas";
 import { formatoFecha, hoy } from "@/lib/fechas";
@@ -501,12 +502,18 @@ export async function hembrasPara(
 export const permite = (tipo: EventoReproductivo["tipo"]) => (p: EventoReproductivo[]) =>
   p.some((e) => e.tipo === tipo);
 
-export async function opcionesServicio(): Promise<Record<string, Opcion[]>> {
+export async function opcionesServicio(): Promise<{
+  opciones: Record<string, Opcion[]>;
+  /** Alertas de consanguinidad por "hembraId|toroId" (solo las que aplican). */
+  alertas: Record<string, string[]>;
+  toroDePajilla: Record<string, string>;
+}> {
   const [hembras, toros, pajillas] = await Promise.all([
     hembrasPara(permite("SERVICIO")),
     prismaBase.toro.findMany({
       where: { deletedAt: null, activo: true },
       orderBy: { nombre: "asc" },
+      include: { animal: { select: { madreId: true, padreId: true } } },
     }),
     prismaBase.pajilla.findMany({
       where: { deletedAt: null, activo: true, existencias: { gt: 0 } },
@@ -514,16 +521,40 @@ export async function opcionesServicio(): Promise<Record<string, Opcion[]>> {
       orderBy: { toro: { nombre: "asc" } },
     }),
   ]);
+  const genealogia = await prismaBase.animal.findMany({
+    where: { id: { in: hembras.map((h) => h.valor) } },
+    select: { id: true, madreId: true, padreId: true, madre: { select: { padreId: true } } },
+  });
+  const alertas: Record<string, string[]> = {};
+  for (const h of genealogia)
+    for (const t of toros) {
+      const a = alertasConsanguinidad(
+        {
+          id: h.id,
+          madreId: h.madreId,
+          padreToroId: h.padreId,
+          abueloMaternoToroId: h.madre?.padreId ?? null,
+        },
+        { id: t.id, madreId: t.animal?.madreId ?? null, padreToroId: t.animal?.padreId ?? null },
+      );
+      if (a.length) alertas[`${h.id}|${t.id}`] = a;
+    }
   return {
-    hembras,
-    toros: toros.map((t) => ({
-      valor: t.id,
-      etiqueta: t.codigo ? `${t.nombre} (${t.codigo})` : t.nombre,
-    })),
-    pajillas: pajillas.map((p) => ({
-      valor: p.id,
-      etiqueta: [p.toro.nombre, p.codigo, `${p.existencias} en termo`].filter(Boolean).join(" · "),
-    })),
+    opciones: {
+      hembras,
+      toros: toros.map((t) => ({
+        valor: t.id,
+        etiqueta: t.codigo ? `${t.nombre} (${t.codigo})` : t.nombre,
+      })),
+      pajillas: pajillas.map((p) => ({
+        valor: p.id,
+        etiqueta: [p.toro.nombre, p.codigo, `${p.existencias} en termo`]
+          .filter(Boolean)
+          .join(" · "),
+      })),
+    },
+    alertas,
+    toroDePajilla: Object.fromEntries(pajillas.map((p) => [p.id, p.toroId])),
   };
 }
 

@@ -14,6 +14,7 @@ export default async function NuevoServicio({
 }: PageProps<"/reproduccion/servicios/nuevo">) {
   await requierePermiso("reproduccion:registrar");
   const { hembra } = await searchParams;
+  const { opciones, alertas, toroDePajilla } = await opcionesServicio();
   return (
     <>
       <EncabezadoPagina
@@ -28,7 +29,9 @@ export default async function NuevoServicio({
           tipo: "INSEMINACION",
           hembraId: typeof hembra === "string" ? hembra : "",
         }}
-        opcionesDinamicas={await opcionesServicio()}
+        opcionesDinamicas={opciones}
+        alertas={alertas}
+        toroDePajilla={toroDePajilla}
       />
     </>
   );

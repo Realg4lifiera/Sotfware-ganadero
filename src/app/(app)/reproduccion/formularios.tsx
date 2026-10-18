@@ -1,5 +1,6 @@
 "use client";
 
+import { TriangleAlert } from "lucide-react";
 import type { Opcion, ValoresFormulario } from "@/lib/formularios/campos";
 import {
   CAMPOS_ABORTO,
@@ -51,7 +52,12 @@ export function FormularioCelo({ valores, opcionesDinamicas }: Props) {
   );
 }
 
-export function FormularioServicio({ valores, opcionesDinamicas }: Props) {
+export function FormularioServicio({
+  valores,
+  opcionesDinamicas,
+  alertas,
+  toroDePajilla,
+}: Props & { alertas: Record<string, string[]>; toroDePajilla: Record<string, string> }) {
   return (
     <FormularioSecciones
       secciones={[{ titulo: "Servicio", campos: CAMPOS_SERVICIO }]}
@@ -63,6 +69,20 @@ export function FormularioServicio({ valores, opcionesDinamicas }: Props) {
       textoBoton="Registrar servicio"
       mensajeExito="Servicio registrado."
       ocultar={ocultarCampoServicio}
+      resumen={(v) => {
+        const toro =
+          v.tipo === "INSEMINACION" ? toroDePajilla[String(v.pajillaId)] : String(v.toroId ?? "");
+        const avisos = alertas[`${v.hembraId}|${toro}`];
+        return avisos ? (
+          <div role="alert" className="text-warning flex gap-2 text-sm font-medium">
+            <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+            <span>
+              Posible consanguinidad: {avisos.join(" ")} Puedes registrarlo si el veterinario lo
+              aprueba.
+            </span>
+          </div>
+        ) : null;
+      }}
     />
   );
 }
