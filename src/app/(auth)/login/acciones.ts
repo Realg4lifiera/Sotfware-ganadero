@@ -5,6 +5,8 @@ import { signIn } from "@/lib/auth";
 
 export interface EstadoLogin {
   error?: string;
+  /** Se devuelve para no borrar el usuario cuando falla el intento. */
+  usuario?: string;
 }
 
 /** Solo permite volver a rutas internas (evita redirecciones abiertas). */
@@ -17,6 +19,7 @@ export async function iniciarSesion(
   _previo: EstadoLogin,
   formData: FormData,
 ): Promise<EstadoLogin> {
+  const usuario = String(formData.get("usuario") ?? "");
   try {
     await signIn("credentials", {
       usuario: formData.get("usuario"),
@@ -26,7 +29,18 @@ export async function iniciarSesion(
     return {};
   } catch (e) {
     if (e instanceof AuthError) {
-      return { error: "Usuario o contraseña incorrectos, o el usuario está desactivado." };
+      if (e.type === "CredentialsSignin")
+        return {
+          error: "Usuario o contraseña incorrectos, o el usuario está desactivado.",
+          usuario,
+        };
+      // Base de datos caída, variables de entorno faltantes…: no culpar al usuario.
+      console.error("[login]", e.type, e.cause ?? e);
+      return {
+        usuario,
+        error:
+          "No se pudo iniciar sesión por un problema del servidor. Intenta de nuevo o avisa al administrador.",
+      };
     }
     throw e; // la redirección de éxito viaja como excepción
   }

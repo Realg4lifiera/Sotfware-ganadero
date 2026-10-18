@@ -19,6 +19,7 @@ export function FormularioLogin({ desde }: { desde?: string }) {
         <Input
           id="usuario"
           name="usuario"
+          defaultValue={estado.usuario}
           autoComplete="username"
           autoCapitalize="none"
           autoCorrect="off"
