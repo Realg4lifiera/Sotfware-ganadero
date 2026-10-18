@@ -410,6 +410,7 @@ export const NAVEGACION: SeccionNav[] = [
         href: "/produccion/alimentacion",
         icono: "alimentacion",
         permisos: ["produccion:leer"],
+        estado: "lista",
         descripcion: "Suministro de alimento por lote, enlazado a su costo.",
         alcance: ["Insumo, cantidad y lote", "Enlace con la compra (Módulo de costos)"],
       },
