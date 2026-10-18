@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { BotonPDF } from "@/components/boton-pdf";
 import { EncabezadoPagina } from "@/components/layout/encabezado-pagina";
 import { SelectorMes } from "@/components/selector-mes";
 import { TablaComposicion } from "@/components/tabla-composicion";
@@ -93,11 +94,14 @@ export default async function ReporteInventario({
         descripcion="Composición actual del hato y rotación mensual."
         volver={{ href: "/reportes", texto: "Reportes" }}
         acciones={
-          <Button variant="outline" asChild>
-            <a href={`/api/exportar/inventario?mes=${mes}`}>
-              <Download /> Excel
-            </a>
-          </Button>
+          <>
+            <BotonPDF />
+            <Button variant="outline" asChild>
+              <a href={`/api/exportar/inventario?mes=${mes}`}>
+                <Download /> Excel
+              </a>
+            </Button>
+          </>
         }
       />
       <div className="grid gap-5 xl:grid-cols-[1fr_1.4fr] [&>*]:min-w-0">

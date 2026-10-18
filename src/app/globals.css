@@ -155,3 +155,37 @@
     @apply font-display tracking-wide;
   }
 }
+
+/* Impresión y PDF de los reportes (BotonPDF → "Guardar como PDF"). */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+  html,
+  body {
+    background: white !important;
+    font-size: 11px;
+  }
+  /* Tarjetas sin sombra; las tablas largas pueden continuar en la página siguiente. */
+  [data-slot="card"] {
+    box-shadow: none !important;
+  }
+  /* Montos en una sola línea. */
+  .tabular-nums {
+    white-space: nowrap;
+  }
+  .sticky {
+    position: static !important;
+  }
+  table {
+    break-inside: auto;
+  }
+  tr {
+    break-inside: avoid;
+  }
+  a {
+    text-decoration: none !important;
+    color: inherit !important;
+  }
+}

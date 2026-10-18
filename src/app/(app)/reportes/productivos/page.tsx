@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { BotonPDF } from "@/components/boton-pdf";
 import { EncabezadoPagina } from "@/components/layout/encabezado-pagina";
 import { EstadoVacio } from "@/components/estado-vacio";
 import { SelectorMes } from "@/components/selector-mes";
@@ -37,11 +38,14 @@ export default async function ReporteProductivo({
         descripcion={`Leche, ganancia de peso y carga animal · ${nombreMes(mes)}`}
         volver={{ href: "/reportes", texto: "Reportes" }}
         acciones={
-          <Button variant="outline" asChild>
-            <a href={`/api/exportar/productivo?mes=${mes}`}>
-              <Download /> Excel
-            </a>
-          </Button>
+          <>
+            <BotonPDF />
+            <Button variant="outline" asChild>
+              <a href={`/api/exportar/productivo?mes=${mes}`}>
+                <Download /> Excel
+              </a>
+            </Button>
+          </>
         }
       />
       <SelectorMes mes={mes} ruta="/reportes/productivos" />

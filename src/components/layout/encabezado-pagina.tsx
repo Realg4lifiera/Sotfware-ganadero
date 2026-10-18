@@ -18,7 +18,7 @@ export function EncabezadoPagina({
         {volver && (
           <Link
             href={volver.href}
-            className="text-muted-foreground hover:text-foreground mb-1 inline-flex items-center gap-1 text-sm"
+            className="text-muted-foreground hover:text-foreground mb-1 inline-flex items-center gap-1 text-sm print:hidden"
           >
             <ChevronLeft className="size-4" />
             {volver.texto}
@@ -27,7 +27,7 @@ export function EncabezadoPagina({
         <h1 className="text-2xl font-semibold sm:text-3xl">{titulo}</h1>
         {descripcion && <p className="text-muted-foreground mt-1 text-sm">{descripcion}</p>}
       </div>
-      {acciones && <div className="flex flex-wrap gap-2">{acciones}</div>}
+      {acciones && <div className="flex flex-wrap gap-2 print:hidden">{acciones}</div>}
     </div>
   );
 }

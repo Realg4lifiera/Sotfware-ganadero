@@ -7,6 +7,7 @@ import { puede } from "@/lib/permisos";
 import { requierePermiso } from "@/lib/sesion";
 import { costosDelMes, rubrosOrdenados } from "@/lib/servicios/costos";
 import { presupuestoDelMes } from "@/lib/servicios/presupuesto";
+import { BotonPDF } from "@/components/boton-pdf";
 import { EncabezadoPagina } from "@/components/layout/encabezado-pagina";
 import { SelectorMes } from "@/components/selector-mes";
 import { TarjetaResumen } from "@/components/tarjeta-resumen";
@@ -41,6 +42,7 @@ export default async function PaginaPresupuesto({
         titulo="Presupuesto"
         descripcion={`Presupuestado vs. ejecutado · ${nombreMes(mes)}`}
         volver={{ href: "/costos", texto: "Costos" }}
+        acciones={<BotonPDF />}
       />
       <SelectorMes mes={mes} ruta="/costos/presupuesto" />
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4 [&>*]:min-w-0">

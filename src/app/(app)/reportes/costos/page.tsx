@@ -17,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { BotonPDF } from "@/components/boton-pdf";
 import { EncabezadoPagina } from "@/components/layout/encabezado-pagina";
 import { EstadoVacio } from "@/components/estado-vacio";
 import { TarjetaResumen } from "@/components/tarjeta-resumen";
@@ -42,11 +43,14 @@ export default async function ReporteDeCostos({ searchParams }: PageProps<"/repo
         descripcion={`${nombreMes(f.desde)} a ${nombreMes(f.hasta)} · por ${ETIQUETA_AGRUPACION[f.por].toLowerCase()}`}
         volver={{ href: "/reportes", texto: "Reportes" }}
         acciones={
-          <Button variant="outline" asChild>
-            <a href={`/api/exportar/reporte-costos?${new URLSearchParams(f)}`}>
-              <Download /> Excel
-            </a>
-          </Button>
+          <>
+            <BotonPDF />
+            <Button variant="outline" asChild>
+              <a href={`/api/exportar/reporte-costos?${new URLSearchParams(f)}`}>
+                <Download /> Excel
+              </a>
+            </Button>
+          </>
         }
       />
       <FiltrosReporteCostos {...f} />
@@ -69,7 +73,10 @@ export default async function ReporteDeCostos({ searchParams }: PageProps<"/repo
                   <TableHead>{ETIQUETA_AGRUPACION[f.por]}</TableHead>
                   {porMesVisible &&
                     r.meses.map((m) => (
-                      <TableHead key={m} className="hidden text-right capitalize xl:table-cell">
+                      <TableHead
+                        key={m}
+                        className="hidden text-right capitalize xl:table-cell print:table-cell"
+                      >
                         {mesCorto(m)}
                       </TableHead>
                     ))}
@@ -83,7 +90,10 @@ export default async function ReporteDeCostos({ searchParams }: PageProps<"/repo
                     <TableCell className="whitespace-normal">{x.nombre}</TableCell>
                     {porMesVisible &&
                       r.meses.map((m) => (
-                        <TableCell key={m} className="hidden text-right tabular-nums xl:table-cell">
+                        <TableCell
+                          key={m}
+                          className="hidden text-right tabular-nums xl:table-cell print:table-cell"
+                        >
                           {pesos(x.porMes[m])}
                         </TableCell>
                       ))}
@@ -101,7 +111,10 @@ export default async function ReporteDeCostos({ searchParams }: PageProps<"/repo
                   <TableCell>Total</TableCell>
                   {porMesVisible &&
                     r.meses.map((m) => (
-                      <TableCell key={m} className="hidden text-right tabular-nums xl:table-cell">
+                      <TableCell
+                        key={m}
+                        className="hidden text-right tabular-nums xl:table-cell print:table-cell"
+                      >
                         {pesos(r.totalPorMes[m])}
                       </TableCell>
                     ))}

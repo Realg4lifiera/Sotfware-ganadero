@@ -76,7 +76,7 @@ export function VistaPresupuesto({
   return (
     <div className="flex flex-col gap-4">
       {editable && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 print:hidden">
           {editando ? (
             <>
               <Button onClick={guardar} disabled={pendiente}>

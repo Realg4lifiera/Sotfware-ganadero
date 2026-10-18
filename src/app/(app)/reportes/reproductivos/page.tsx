@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { BotonPDF } from "@/components/boton-pdf";
 import { EncabezadoPagina } from "@/components/layout/encabezado-pagina";
 import { SelectorMes } from "@/components/selector-mes";
 import { TarjetaResumen } from "@/components/tarjeta-resumen";
@@ -37,11 +38,14 @@ export default async function ReporteReproductivo({
         descripcion={`Últimos 12 meses: ${formatoFecha(r.desde)} a ${formatoFecha(new Date(r.hasta.getTime() - 86_400_000))}`}
         volver={{ href: "/reportes", texto: "Reportes" }}
         acciones={
-          <Button variant="outline" asChild>
-            <a href={`/api/exportar/reproductivo?mes=${mes}`}>
-              <Download /> Excel
-            </a>
-          </Button>
+          <>
+            <BotonPDF />
+            <Button variant="outline" asChild>
+              <a href={`/api/exportar/reproductivo?mes=${mes}`}>
+                <Download /> Excel
+              </a>
+            </Button>
+          </>
         }
       />
       <SelectorMes mes={mes} ruta="/reportes/reproductivos" />

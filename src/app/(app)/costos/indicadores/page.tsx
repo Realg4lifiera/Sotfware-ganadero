@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { BotonPDF } from "@/components/boton-pdf";
 import { EncabezadoPagina } from "@/components/layout/encabezado-pagina";
 import { SelectorMes } from "@/components/selector-mes";
 
@@ -44,6 +45,7 @@ export default async function IndicadoresCosto({ searchParams }: PageProps<"/cos
         titulo="Indicadores de costo"
         descripcion={`Últimos 12 meses hasta ${nombreMes(mes)}`}
         volver={{ href: "/costos", texto: "Costos" }}
+        acciones={<BotonPDF />}
       />
       <SelectorMes mes={mes} ruta="/costos/indicadores" />
       <Card>

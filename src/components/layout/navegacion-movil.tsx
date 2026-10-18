@@ -72,7 +72,7 @@ export function MenuInferior({
   };
 
   return (
-    <nav className="bg-card/95 fixed inset-x-0 bottom-0 z-40 flex border-t pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
+    <nav className="bg-card/95 fixed inset-x-0 bottom-0 z-40 flex border-t pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden print:hidden">
       {principales.slice(0, 2).map(enlace)}
       {registrosRapidos.length > 0 && (
         <Sheet open={registrar} onOpenChange={setRegistrar}>

@@ -16,7 +16,7 @@ export function SelectorMes({ mes, ruta }: { mes: string; ruta: string }) {
   const router = useRouter();
   const ir = (m: string) => router.push(`${ruta}?mes=${m}`);
   return (
-    <div className="mb-4 flex items-center gap-2">
+    <div className="mb-4 flex items-center gap-2 print:hidden">
       <Button
         variant="outline"
         size="icon"
