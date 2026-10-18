@@ -475,6 +475,7 @@ export const NAVEGACION: SeccionNav[] = [
         href: "/reportes/productivos",
         icono: "produccion",
         permisos: ["reportes:productivos"],
+        estado: "lista",
         descripcion: "Producción de leche, ganancia de peso y carga animal.",
         alcance: [
           "Litros por vaca/día y por hectárea",

@@ -455,7 +455,8 @@ model Auditoria {
 model CentroCosto {
   id          String    @id @default(cuid())
   nombre      String    @unique
-  /// Centro que el sistema reconoce: LECHERIA (costo por litro solo de lechería).
+  /// Centro que el sistema reconoce: LECHERIA (costo por litro de lechería), CRIA_LEVANTE y
+  /// CEBA (costo por kilo ganado).
   clave       String?   @unique
   descripcion String?
   activo      Boolean   @default(true)

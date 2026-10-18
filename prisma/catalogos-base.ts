@@ -107,6 +107,13 @@ const CLAVES_RUBRO: Record<string, string> = {
   Depreciaciones: "DEPRECIACIONES",
 };
 
+/** Centros que el sistema reconoce (ver CentroCosto.clave). */
+const CLAVES_CENTRO: Record<string, string> = {
+  Lechería: "LECHERIA",
+  "Cría y levante": "CRIA_LEVANTE",
+  Ceba: "CEBA",
+};
+
 /** Crea los catálogos base (BD vacía). Devuelve mapas nombre → id. */
 export async function crearCatalogosBase(prisma: PrismaClient) {
   await prisma.raza.createMany({ data: RAZAS.map((nombre) => ({ nombre })) });
@@ -116,7 +123,7 @@ export async function crearCatalogosBase(prisma: PrismaClient) {
     data: CENTROS_COSTO.map(([nombre, descripcion]) => ({
       nombre,
       descripcion,
-      clave: nombre === "Lechería" ? "LECHERIA" : null,
+      clave: CLAVES_CENTRO[nombre] ?? null,
     })),
   });
   const centros = new Map((await prisma.centroCosto.findMany()).map((c) => [c.nombre, c.id]));

@@ -5,6 +5,7 @@ import { formatoCOP, formatoLitros, formatoPorcentaje } from "@/lib/formato";
 import { puede } from "@/lib/permisos";
 import { requierePermiso } from "@/lib/sesion";
 import { informeDelMes } from "@/lib/servicios/costos";
+import { indicadoresProductivosMes } from "@/lib/servicios/indicadores-productivos";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -32,8 +33,11 @@ export default async function IndicadoresCosto({ searchParams }: PageProps<"/cos
   const usuario = await requierePermiso("costos:leer");
   const mes = mesDesdeParametro((await searchParams).mes);
   const meses = mesesHasta(mes, 12);
-  const informes = await Promise.all(meses.map((m) => informeDelMes(m)));
-  const filas = meses.map((m, i) => ({ mes: m, inf: informes[i] })).reverse();
+  const [informes, productivos] = await Promise.all([
+    Promise.all(meses.map((m) => informeDelMes(m))),
+    Promise.all(meses.map((m) => indicadoresProductivosMes(m))),
+  ]);
+  const filas = meses.map((m, i) => ({ mes: m, inf: informes[i], prod: productivos[i] })).reverse();
   return (
     <>
       <EncabezadoPagina
@@ -61,10 +65,12 @@ export default async function IndicadoresCosto({ searchParams }: PageProps<"/cos
                 <TableHead className="hidden text-right lg:table-cell">Costos</TableHead>
                 <TableHead className="hidden text-right lg:table-cell">Ingresos</TableHead>
                 <TableHead className="text-right">Rentab.</TableHead>
+                <TableHead className="hidden text-right md:table-cell">$/kg ganado</TableHead>
+                <TableHead className="hidden text-right md:table-cell">$/animal/día</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filas.map(({ mes: m, inf }) => (
+              {filas.map(({ mes: m, inf, prod }) => (
                 <TableRow key={m}>
                   <TableCell className="first-letter:uppercase">
                     {puede(usuario.rol, "reportes:costos") ? (
@@ -99,6 +105,12 @@ export default async function IndicadoresCosto({ searchParams }: PageProps<"/cos
                   <TableCell className="text-right tabular-nums">
                     {inf.rentabilidad === null ? "—" : formatoPorcentaje(inf.rentabilidad)}
                   </TableCell>
+                  <TableCell className="hidden text-right tabular-nums md:table-cell">
+                    {pesos(prod.costoKiloGanado)}
+                  </TableCell>
+                  <TableCell className="hidden text-right tabular-nums md:table-cell">
+                    {pesos(prod.costoAnimalDia)}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -106,8 +118,9 @@ export default async function IndicadoresCosto({ searchParams }: PageProps<"/cos
         </CardContent>
       </Card>
       <p className="text-muted-foreground mt-4 text-sm">
-        El costo por kilo ganado y por animal/día se activan con los pesajes y el inventario
-        histórico del módulo productivo.
+        Costo por kilo ganado: costos de los centros Cría y levante y Ceba entre los kilos que
+        ganaron sus lotes. Costo por animal/día: costos del mes entre los animales-día. Fórmulas
+        pendientes de validación con el veterinario.
       </p>
     </>
   );
