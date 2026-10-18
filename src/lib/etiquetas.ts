@@ -16,6 +16,7 @@ import type {
   Sexo,
   TipoCategoriaGasto,
   TipoContrato,
+  TipoEventoReproductivo,
   TipoEventoSanitario,
   TipoIngreso,
   TipoInsumo,
@@ -134,6 +135,16 @@ export const ETIQUETA_TIPO_INGRESO: Record<TipoIngreso, string> = {
 export const ETIQUETA_TIPO_SERVICIO: Record<TipoServicio, string> = {
   MONTA_NATURAL: "Monta natural",
   INSEMINACION: "Inseminación",
+};
+
+export const ETIQUETA_TIPO_EVENTO_REPRODUCTIVO: Record<TipoEventoReproductivo, string> = {
+  CELO: "Celo",
+  SERVICIO: "Servicio",
+  DIAGNOSTICO: "Diagnóstico",
+  PARTO: "Parto",
+  ABORTO: "Aborto",
+  SECADO: "Secado",
+  DESCARTE: "Descarte",
 };
 
 export const ETIQUETA_TIPO_MOVIMIENTO_PAJILLA: Record<TipoMovimientoPajilla, string> = {

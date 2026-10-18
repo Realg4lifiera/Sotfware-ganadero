@@ -34,6 +34,7 @@ export function FormularioSecciones({
   mensajeExito = "Guardado.",
   resumen,
   alCambiar,
+  ocultar,
 }: {
   secciones: SeccionFormulario[];
   esquema: ZodType;
@@ -52,6 +53,8 @@ export function FormularioSecciones({
     valores: ValoresFormulario,
     fijar: (campo: string, valor: string) => void,
   ) => void;
+  /** Oculta un campo según los valores actuales (p. ej. el toro solo en monta natural). */
+  ocultar?: (campo: string, valores: ValoresFormulario) => boolean;
 }) {
   const router = useRouter();
   const hidratado = useHidratado();
@@ -102,16 +105,18 @@ export function FormularioSecciones({
             {s.descripcion && <CardDescription>{s.descripcion}</CardDescription>}
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {s.campos.map((c) => (
-              <CampoFormulario
-                key={c.nombre}
-                campo={c}
-                register={registrar}
-                errores={errors}
-                opcionesDinamicas={opcionesDinamicas}
-                valorInicial={valores[c.nombre]}
-              />
-            ))}
+            {s.campos
+              .filter((c) => !ocultar?.(c.nombre, actuales))
+              .map((c) => (
+                <CampoFormulario
+                  key={c.nombre}
+                  campo={c}
+                  register={registrar}
+                  errores={errors}
+                  opcionesDinamicas={opcionesDinamicas}
+                  valorInicial={valores[c.nombre]}
+                />
+              ))}
           </CardContent>
         </Card>
       ))}

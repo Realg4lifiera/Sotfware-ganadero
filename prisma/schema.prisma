@@ -153,6 +153,16 @@ enum TipoMovimientoPajilla {
   AJUSTE
 }
 
+enum TipoEventoReproductivo {
+  CELO
+  SERVICIO
+  DIAGNOSTICO
+  PARTO
+  ABORTO
+  SECADO
+  DESCARTE
+}
+
 enum TipoServicio {
   MONTA_NATURAL
   INSEMINACION
@@ -347,10 +357,11 @@ model Animal {
   celos                  Celo[]
   servicios              Servicio[]
   diagnosticos           DiagnosticoPrenez[]
-  partos                 Parto[]                @relation("PartosMadre")
+  partos                 Parto[]                 @relation("PartosMadre")
   abortos                Aborto[]
   secados                Secado[]
   descartesReproductivos DescarteReproductivo[]
+  historialReproductivo  HistorialReproductivo[]
   lactancias             Lactancia[]
   ordenos                RegistroOrdeno[]
   pesajes                Pesaje[]
@@ -1019,6 +1030,38 @@ model DescarteReproductivo {
   createdById String?
   updatedById String?
   deletedAt   DateTime? @db.Timestamptz(3)
+
+  hembra Animal @relation(fields: [hembraId], references: [id])
+
+  @@index([hembraId, fecha])
+}
+
+/**
+ * Bitácora de eventos reproductivos aplicados por el sistema: guarda la situación de la
+ * hembra antes del evento para poder anular el último y volver exactamente al estado
+ * anterior. La escribe solo lib/servicios/reproduccion.ts.
+ */
+model HistorialReproductivo {
+  id                 String                 @id @default(cuid())
+  hembraId           String
+  fecha              DateTime               @db.Date
+  tipo               TipoEventoReproductivo
+  /// Id del registro del evento (Celo, Servicio, DiagnosticoPrenez, Parto…).
+  eventoId           String                 @unique
+  estadoAntes        EstadoReproductivo
+  estadoDespues      EstadoReproductivo
+  numeroPartosAntes  Int
+  /// Lactancia que abrió el evento (parto).
+  lactanciaAbiertaId String?
+  /// Lactancia que cerró el evento (secado, o parto sin secado previo).
+  lactanciaCerradaId String?
+  /// Estado del animal antes (el descarte lo cambia a DESCARTADO).
+  estadoAnimalAntes  EstadoAnimal?
+  createdAt          DateTime               @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime               @updatedAt @db.Timestamptz(3)
+  createdById        String?
+  updatedById        String?
+  deletedAt          DateTime?              @db.Timestamptz(3)
 
   hembra Animal @relation(fields: [hembraId], references: [id])
 

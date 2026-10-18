@@ -14,8 +14,22 @@ const entrada: EntradaCostos = {
   rubroManoObraId: "r-mano",
   rubroDepreciacionId: "r-dep",
   gastos: [
-    { fecha: f("2025-06-05"), categoriaId: "c-conc", rubroId: "r-alim", centroCostoId: "lech", valorTotal: 298410, valorIva: 14210 },
-    { fecha: f("2025-07-01"), categoriaId: "c-conc", rubroId: "r-alim", centroCostoId: "lech", valorTotal: 999, valorIva: 0 },
+    {
+      fecha: f("2025-06-05"),
+      categoriaId: "c-conc",
+      rubroId: "r-alim",
+      centroCostoId: "lech",
+      valorTotal: 298410,
+      valorIva: 14210,
+    },
+    {
+      fecha: f("2025-07-01"),
+      categoriaId: "c-conc",
+      rubroId: "r-alim",
+      centroCostoId: "lech",
+      valorTotal: 999,
+      valorIva: 0,
+    },
   ],
   indirectos: [
     // Predial anual repartido con regla 75/15/10
@@ -33,14 +47,29 @@ const entrada: EntradaCostos = {
       ],
     },
     // Transporte de leche del mes, directo a lechería
-    { fecha: f("2025-06-30"), periodicidad: "MENSUAL", valorTotal: 95109.17, categoriaId: "c-trans", rubroId: "r-trans", centroCostoId: "lech", regla: null },
+    {
+      fecha: f("2025-06-30"),
+      periodicidad: "MENSUAL",
+      valorTotal: 95109.17,
+      categoriaId: "c-trans",
+      rubroId: "r-trans",
+      centroCostoId: "lech",
+      regla: null,
+    },
   ],
   nomina: [
     { fecha: f("2025-06-15"), costoTotal: 2175000, centroCostoId: "lech" },
     { fecha: f("2025-05-31"), costoTotal: 1000000, centroCostoId: "lech" },
   ],
   activos: [
-    { valorCompra: 18000000, valorResidual: 2000000, fechaCompra: f("2024-01-15"), vidaUtilMeses: 120, activo: true, centroCostoId: "lech" },
+    {
+      valorCompra: 18000000,
+      valorResidual: 2000000,
+      fechaCompra: f("2024-01-15"),
+      vidaUtilMeses: 120,
+      activo: true,
+      centroCostoId: "lech",
+    },
   ],
 };
 
@@ -89,7 +118,13 @@ describe("indicadores del informe del productor", () => {
   });
 
   it("sin litros ni ingresos no divide por cero", () => {
-    const r = indicadoresLeche({ costoTotal: 100, costoLecheria: 0, ingresos: 0, litrosProducidos: 0, litrosVendidos: 0 });
+    const r = indicadoresLeche({
+      costoTotal: 100,
+      costoLecheria: 0,
+      ingresos: 0,
+      litrosProducidos: 0,
+      litrosVendidos: 0,
+    });
     expect(r.costoPorLitroProducido).toBeNull();
     expect(r.rentabilidad).toBeNull();
     expect(r.utilidad).toBe(-100);
