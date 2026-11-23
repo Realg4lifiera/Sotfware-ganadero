@@ -1,17 +1,19 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
+import { esSupabase, urlMigraciones } from "./src/lib/conexion-bd";
 
 /**
- * URL de las migraciones: conexión directa o "session pooler" (DATABASE_URL_UNPOOLED); la
- * app usa la conexión con pool (DATABASE_URL). Supabase exige TLS: el motor de
- * migraciones lo activa con `sslmode=require` (cifra sin verificar la CA de Supabase).
+ * Migraciones por conexión directa o "session pooler" (ver `lib/conexion-bd.ts`). Supabase
+ * exige TLS: el motor de migraciones lo activa con `sslmode=require` (cifra sin verificar
+ * la CA de Supabase).
  */
-function urlMigraciones(): string | undefined {
-  const url = process.env["DATABASE_URL_UNPOOLED"] ?? process.env["DATABASE_URL"];
-  if (!url) return url;
-  const u = new URL(url);
-  if (/\.supabase\.(com|co)$/.test(u.hostname) && !u.searchParams.has("sslmode"))
-    u.searchParams.set("sslmode", "require");
+function url(): string | undefined {
+  const base = urlMigraciones();
+  if (!base || !esSupabase(base)) return base;
+  const u = new URL(base);
+  u.searchParams.delete("pgbouncer");
+  u.searchParams.delete("supa");
+  if (!u.searchParams.has("sslmode")) u.searchParams.set("sslmode", "require");
   return u.toString();
 }
 
@@ -22,6 +24,6 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: urlMigraciones(),
+    url: url(),
   },
 });
