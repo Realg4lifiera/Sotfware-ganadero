@@ -18,8 +18,16 @@ export default async function PaginaFinca() {
     ...valoresDesdeRegistro(CAMPOS_FINCA, finca ?? {}),
     ivaEsCosto: config.costos.ivaEsCosto,
     ...Object.fromEntries(Object.entries(config.reproduccion).map(([c, v]) => [c, String(v)])),
+    kgUgg: String(config.cargaAnimal.kgUgg).replace(".", ","),
     ...Object.fromEntries(
-      Object.entries(config.cargaAnimal).map(([c, v]) => [`ua_${c}`, String(v).replace(".", ",")]),
+      Object.entries(config.cargaAnimal.pesoEstimado).map(([c, v]) => [
+        `peso_${c}`,
+        String(v).replace(".", ","),
+      ]),
+    ),
+    diasControlLechero: String(config.produccion.diasControlLechero),
+    ...Object.fromEntries(
+      Object.entries(config.produccion.diasPesaje).map(([c, v]) => [`pesaje_${c}`, String(v)]),
     ),
     edadDesteteMeses: String(config.hato.edadDesteteMeses),
     edadNovillaMeses: String(config.hato.edadNovillaMeses),

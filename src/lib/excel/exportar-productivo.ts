@@ -7,14 +7,14 @@ import { ESTILO_ENCABEZADO } from "./libro";
 export async function generarExcelProductivo(
   mes: string,
   i: IndicadoresProductivos,
-  carga: { cargaUaHa: number | null; totalUa: number },
+  carga: { cargaUggHa: number | null; totalUgg: number },
 ): Promise<ArrayBuffer> {
   const libro = new ExcelJS.Workbook();
   libro.creator = "Campo Verde";
   const hoja = libro.addWorksheet("Indicadores");
   hoja.columns = [{ width: 36 }, { width: 16 }];
   hoja.addRow([`Indicadores productivos · ${nombreMes(mes)}`]).font = { bold: true, size: 13 };
-  hoja.addRow(["Fórmulas pendientes de validación con el veterinario."]).font = { italic: true };
+  hoja.addRow(["Fórmulas validadas con el veterinario."]).font = { italic: true };
   hoja.addRow([]);
   hoja.addRow(["Indicador", "Valor"]).eachCell((c) => (c.style = ESTILO_ENCABEZADO));
   const fila = (n: string, v: number | null, fmt = "#,##0.0") => {
@@ -26,10 +26,11 @@ export async function generarExcelProductivo(
   fila("Vacas-día en producción", i.vacaDias, "#,##0");
   fila("Litros por vaca/día", i.litrosVacaDia);
   fila("Litros por hectárea (mes)", i.litrosHa);
-  fila("Carga animal actual (UA/ha)", carga.cargaUaHa, "#,##0.00");
-  fila("Unidades animales actuales", carga.totalUa);
+  fila("Carga animal actual (UGG/ha)", carga.cargaUggHa, "#,##0.00");
+  fila("Unidades gran ganado actuales (UGG)", carga.totalUgg);
   fila("Kilos ganados (cría, levante y ceba)", i.kilosGanados);
-  fila("Costos de cría, levante y ceba", i.costoCarne, pesos);
+  fila("Costos de cría, levante y ceba", i.costoCentrosCarne, pesos);
+  fila("Gastos generales asignados a carne", i.generalesCarne, pesos);
   fila("Costo por kilo ganado", i.costoKiloGanado, pesos);
   fila("Animales-día", i.animalDias, "#,##0");
   fila("Costo total del mes", i.costoTotal, pesos);

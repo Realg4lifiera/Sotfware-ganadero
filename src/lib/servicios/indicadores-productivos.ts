@@ -5,6 +5,7 @@ import { rangoMes } from "@/lib/fechas";
 import {
   diasSolapados,
   dividir,
+  generalesDeCarne,
   kilosGanadosEnPeriodo,
   sumaDias,
 } from "@/lib/indicadores/produccion";
@@ -16,7 +17,7 @@ const CENTROS_CARNE = ["CRIA_LEVANTE", "CEBA"];
 /** Lotes cuyos animales cuentan para los kilos ganados. */
 const LOTES_CARNE = ["CRIA", "LEVANTE", "CEBA"] as const;
 
-/** Indicadores productivos y de costo del mes ("AAAA-MM"). Pendientes de validación. */
+/** Indicadores productivos y de costo del mes ("AAAA-MM"). */
 export async function indicadoresProductivosMes(mes: string) {
   const { desde, hasta } = rangoMes(mes);
   const [litros, lineas, centros, animales, lactancias, finca] = await Promise.all([
@@ -45,17 +46,31 @@ export async function indicadoresProductivosMes(mes: string) {
 
   const costoTotal = Math.round(lineas.reduce((s, l) => s + l.monto, 0));
   const idsCarne = new Set(centros.map((c) => c.id));
-  const costoCarne = Math.round(
+  const costoCentrosCarne = Math.round(
     lineas
       .filter((l) => l.centroCostoId && idsCarne.has(l.centroCostoId))
       .reduce((s, l) => s + l.monto, 0),
   );
+  const costoGeneral = Math.round(
+    lineas.filter((l) => !l.centroCostoId).reduce((s, l) => s + l.monto, 0),
+  );
 
-  const animalDias = sumaDias(
-    animales.map((a) => ({ inicio: a.fechaIngreso, fin: a.fechaSalida })),
+  const intervalo = (a: (typeof animales)[number]) => ({
+    inicio: a.fechaIngreso,
+    fin: a.fechaSalida,
+  });
+  const animalDias = sumaDias(animales.map(intervalo), desde, hasta);
+  const animalDiasCarne = sumaDias(
+    animales
+      .filter(
+        (a) => a.lote && LOTES_CARNE.includes(a.lote.proposito as (typeof LOTES_CARNE)[number]),
+      )
+      .map(intervalo),
     desde,
     hasta,
   );
+  const generalesCarne = generalesDeCarne(costoGeneral, animalDiasCarne, animalDias);
+  const costoCarne = costoCentrosCarne + generalesCarne;
   const vacaDias = sumaDias(
     lactancias.map((l) => ({ inicio: l.fechaInicio, fin: l.fechaFin })),
     desde,
@@ -103,6 +118,8 @@ export async function indicadoresProductivosMes(mes: string) {
     costoAnimalDia: costoTotal > 0 ? dividir(costoTotal, animalDias, 0) : null,
     kilosGanados: kilos,
     costoCarne,
+    costoCentrosCarne,
+    generalesCarne,
     // Sin costos asignados a cría, levante o ceba el indicador no aplica (no es $ 0).
     costoKiloGanado: costoCarne > 0 ? dividir(costoCarne, kilos, 0) : null,
     ganancia,

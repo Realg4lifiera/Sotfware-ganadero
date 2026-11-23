@@ -129,7 +129,7 @@ export function alertasReproductivas(
         ...base,
         tipo: "REPETIDORA",
         dias: h.serviciosCiclo,
-        detalle: `${plural(h.serviciosCiclo, "servicio")} sin preñez en el ciclo`,
+        detalle: `${plural(h.serviciosCiclo, "servicio")} sin preñez en el ciclo · evaluar descarte`,
       });
   }
   return alertas;

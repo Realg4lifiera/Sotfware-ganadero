@@ -269,9 +269,11 @@ ganado y por animal/día.
   para el control por vaca y la conciliación. Un mismo ordeño no se registra por vaca y
   por lote a la vez.
 - Producción de lactancia: curva por intervalos de control; ajustada a 305 proporcional
-  (`lib/indicadores/lactancia.ts`, pendiente de validar).
-- UA por categoría configurables en Finca (vaca 1,0 · novilla 0,7 · ternera 0,4 ·
-  lactante 0,2 · macho levante 0,6 · toro 1,3 · otras 1,0).
+  (`lib/indicadores/lactancia.ts`, validado; control lechero cada 8 días).
+- Carga animal en **UGG** (unidad gran ganado = 450 kg de peso vivo, referencia Fedegán;
+  configurable en Finca): peso del último pesaje o, sin pesajes, peso estimado de su
+  categoría (vaca 450 · novilla 320 · ternera 180 · lactante 80 · macho levante 300 ·
+  toro 650 · otras 400), dividido por el peso de una UGG (`unidadesGranGanado`).
 - Rotar un lote traslada a todos sus animales con su movimiento de potrero.
 - Centros con clave: LECHERIA, CRIA_LEVANTE, CEBA (costo por kilo ganado).
 - Retiros: un evento de lote cubre a sus animales; el de leche solo cuenta en vacas en
@@ -292,25 +294,37 @@ rentabilidad), cambio de finca desde el encabezado, gestión de fincas (crear co
 parámetros, editar, desactivar), acceso de usuarios por finca y rol `PROPIETARIO`. El seed
 trae dos fincas (Campo Verde y La Esperanza) y el usuario `propietario`.
 
-Pendiente: alerta de pesajes pendientes (definir regla con el cliente), validar las fórmulas
-del glosario con el veterinario, conectar la base de datos de producción (Supabase/Neon).
+Hecho (Validación con el veterinario, nov. 2026): glosario aprobado; carga en UGG; gastos
+generales en el costo por kilo; días abiertos en curso de las vacas vacías; avisos de
+pesajes y control lechero pendientes (`lib/dominio/alertas-productivas.ts`, página
+`/produccion/pendientes` y tablero). Parámetros en `Finca.configuracion.produccion`:
+control lechero cada 8 días; pesar terneras, novillas (levante) y machos de levante/ceba
+cada 30 días; vacas y toros no se pesan (0). Sin pesajes, el aviso cuenta desde el ingreso;
+el control lechero cuenta desde el parto o el último control (por vaca o por su lote).
 
-## Glosario de indicadores (PENDIENTES DE VALIDACIÓN con el veterinario)
+Pendiente: conectar la base de datos de producción (Neon) y desplegar en Vercel.
 
-Se implementarán como funciones puras con pruebas en `src/lib/indicadores/`.
+## Glosario de indicadores (validado con el veterinario)
+
+Funciones puras con pruebas en `src/lib/indicadores/`.
 
 - **Intervalo entre partos (IEP):** días entre dos partos consecutivos de la misma vaca.
 - **Días abiertos:** días desde el parto hasta la concepción (servicio con preñez confirmada).
+  En vacas aún sin preñez (parida, vacía o servida) siguen corriendo hasta hoy ("abiertos hoy").
+- **Vaca repetidora:** 3 servicios sin preñez en el ciclo; es el tope para evaluar descarte.
 - **Servicios por concepción:** total de servicios / preñeces confirmadas.
 - **Tasa de preñez:** hembras preñadas / hembras aptas expuestas en el período.
 - **Edad al primer parto:** edad de la hembra en su primer parto.
 - **Días en leche:** días desde el parto hasta la fecha o hasta el secado.
-- **Producción ajustada a 305 días:** producción de la lactancia normalizada a 305 días.
+- **Producción ajustada a 305 días:** producción de la lactancia normalizada a 305 días
+  (aunque la vaca dure más en lactancia por no preñarse, se compara a 305).
 - **Ganancia diaria de peso (GDP):** (peso final − peso inicial) / días entre pesajes, g/día.
 - **Costo por litro:** costos asignados a lechería / litros producidos en el período
   (también se muestra / litros vendidos, como el informe Colanta).
-- **Costo por kilo ganado:** costos asignados a ceba/levante / kilos ganados en el período.
+- **Costo por kilo ganado:** (costos de los centros Cría y levante y Ceba + la parte de los
+  gastos generales sin centro —administración, arriendos, trabajadores, alquiler de finca—
+  según los animales-día de sus lotes) / kilos ganados en el período.
 - **Costo por animal/día:** costos del período / (animales × días).
 - **Litros por vaca/día** y **litros por hectárea**.
-- **Carga animal:** unidades animales por hectárea.
-- **Rentabilidad:** utilidad del período / ingresos del período.
+- **Carga animal:** unidades gran ganado (UGG = 450 kg de peso vivo) por hectárea.
+- **Rentabilidad:** utilidad del período / ingresos del período (como el informe de Colanta).

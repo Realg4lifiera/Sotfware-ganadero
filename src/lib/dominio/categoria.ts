@@ -81,29 +81,66 @@ export const configuracionReproduccionSchema = z.object({
 });
 export type ConfiguracionReproduccion = z.infer<typeof configuracionReproduccionSchema>;
 
-/** Unidades animales (UA) por categoría para la carga animal (aprobado, configurable). */
+/**
+ * Carga animal en unidades gran ganado (UGG): peso vivo / kg de una UGG (aprobado: 450 kg,
+ * referencia Fedegán). Sin pesaje se usa el peso estimado de su categoría.
+ */
 export const configuracionCargaSchema = z.object({
-  VACA_PRODUCCION: z.number().min(0).max(3).default(1),
-  VACA_SECA: z.number().min(0).max(3).default(1),
-  NOVILLA: z.number().min(0).max(3).default(0.7),
-  TERNERA: z.number().min(0).max(3).default(0.4),
-  TERNERA_LACTANTE: z.number().min(0).max(3).default(0.2),
-  MACHO_LEVANTE_CEBA: z.number().min(0).max(3).default(0.6),
-  TORO: z.number().min(0).max(3).default(1.3),
-  OTRA_ESPECIE: z.number().min(0).max(3).default(1),
+  kgUgg: z.number().min(300).max(600).default(450),
+  pesoEstimado: z
+    .object({
+      VACA_PRODUCCION: z.number().min(1).max(1500).default(450),
+      VACA_SECA: z.number().min(1).max(1500).default(450),
+      NOVILLA: z.number().min(1).max(1500).default(320),
+      TERNERA: z.number().min(1).max(1500).default(180),
+      TERNERA_LACTANTE: z.number().min(1).max(1500).default(80),
+      MACHO_LEVANTE_CEBA: z.number().min(1).max(1500).default(300),
+      TORO: z.number().min(1).max(1500).default(650),
+      OTRA_ESPECIE: z.number().min(1).max(1500).default(400),
+    })
+    .prefault({}),
 });
 export type ConfiguracionCarga = z.infer<typeof configuracionCargaSchema>;
 
-/** Unidades animales de un grupo de animales según su categoría. */
-export function unidadesAnimales(categorias: CategoriaAnimal[], ua: ConfiguracionCarga): number {
-  return Math.round(categorias.reduce((s, c) => s + ua[c], 0) * 100) / 100;
+export interface AnimalCarga {
+  categoria: CategoriaAnimal;
+  /** Último peso registrado (kg) o null si no tiene pesajes. */
+  pesoKg: number | null;
 }
+
+/** Unidades gran ganado de un grupo: suma de pesos (real o estimado) / kg por UGG. */
+export function unidadesGranGanado(animales: AnimalCarga[], c: ConfiguracionCarga): number {
+  const kilos = animales.reduce((s, a) => s + (a.pesoKg ?? c.pesoEstimado[a.categoria]), 0);
+  return Math.round((kilos / c.kgUgg) * 100) / 100;
+}
+
+/**
+ * Parámetros productivos (aprobados con el veterinario): control lechero cada 8 días;
+ * pesar terneras, levante y ceba cada 30 días; las vacas no se pesan (0 = no se pesa).
+ */
+export const configuracionProduccionSchema = z.object({
+  diasControlLechero: z.number().int().min(1).max(60).default(8),
+  diasPesaje: z
+    .object({
+      VACA_PRODUCCION: z.number().int().min(0).max(365).default(0),
+      VACA_SECA: z.number().int().min(0).max(365).default(0),
+      NOVILLA: z.number().int().min(0).max(365).default(30),
+      TERNERA: z.number().int().min(0).max(365).default(30),
+      TERNERA_LACTANTE: z.number().int().min(0).max(365).default(30),
+      MACHO_LEVANTE_CEBA: z.number().int().min(0).max(365).default(30),
+      TORO: z.number().int().min(0).max(365).default(0),
+      OTRA_ESPECIE: z.number().int().min(0).max(365).default(0),
+    })
+    .prefault({}),
+});
+export type ConfiguracionProduccion = z.infer<typeof configuracionProduccionSchema>;
 
 export const configuracionFincaSchema = z.object({
   hato: configuracionHatoSchema.prefault({}),
   costos: configuracionCostosSchema.prefault({}),
   reproduccion: configuracionReproduccionSchema.prefault({}),
   cargaAnimal: configuracionCargaSchema.prefault({}),
+  produccion: configuracionProduccionSchema.prefault({}),
 });
 export type ConfiguracionFinca = z.infer<typeof configuracionFincaSchema>;
 

@@ -39,8 +39,8 @@ export default async function PaginaRotacion() {
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4 [&>*]:min-w-0">
         <TarjetaResumen
           titulo="Carga animal"
-          valor={`${n(e.cargaUaHa)} UA/ha`}
-          detalle={`${n(e.totalUa, 1)} UA en ${n(e.areaHa, 1)} ha`}
+          valor={`${n(e.cargaUggHa)} UGG/ha`}
+          detalle={`${n(e.totalUgg, 1)} UGG en ${n(e.areaHa, 1)} ha`}
         />
         <TarjetaResumen
           titulo="Potreros ocupados"
@@ -82,12 +82,12 @@ export default async function PaginaRotacion() {
                   <dd className="font-semibold tabular-nums">{p.animales}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground text-xs">UA</dt>
-                  <dd className="font-semibold tabular-nums">{n(p.ua, 1)}</dd>
+                  <dt className="text-muted-foreground text-xs">UGG</dt>
+                  <dd className="font-semibold tabular-nums">{n(p.ugg, 1)}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground text-xs">UA/ha</dt>
-                  <dd className="font-semibold tabular-nums">{n(p.cargaUaHa)}</dd>
+                  <dt className="text-muted-foreground text-xs">UGG/ha</dt>
+                  <dd className="font-semibold tabular-nums">{n(p.cargaUggHa)}</dd>
                 </div>
               </dl>
               {registra && !p.lotes.length && p.activo && (
@@ -122,8 +122,10 @@ export default async function PaginaRotacion() {
         </CardContent>
       </Card>
       <p className="text-muted-foreground mt-3 text-xs">
-        UA por categoría configurables en Configuración › Finca. La carga global usa el área útil de
-        la finca (o la suma de los potreros si no está configurada).
+        1 UGG = peso vivo de referencia (450 kg por defecto). Cada animal cuenta con su último
+        pesaje o, sin pesajes, con el peso estimado de su categoría (Configuración › Finca). La
+        carga global usa el área útil de la finca (o la suma de los potreros si no está
+        configurada).
       </p>
     </>
   );

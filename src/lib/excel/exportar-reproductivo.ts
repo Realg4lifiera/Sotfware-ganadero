@@ -13,7 +13,7 @@ export async function generarExcelReproductivo(r: ReporteReproductivo): Promise<
   ind.addRow([
     `Indicadores reproductivos · ${formatoFecha(r.desde)} a ${formatoFecha(hastaIncl)}`,
   ]).font = { bold: true, size: 13 };
-  ind.addRow(["Fórmulas pendientes de validación con el veterinario."]).font = { italic: true };
+  ind.addRow(["Fórmulas validadas con el veterinario."]).font = { italic: true };
   ind.addRow([]);
   const enc = ind.addRow(["Indicador", "Valor", "Base (n)"]);
   enc.eachCell((c) => (c.style = ESTILO_ENCABEZADO));
@@ -32,6 +32,7 @@ export async function generarExcelReproductivo(r: ReporteReproductivo): Promise<
     { header: "Partos", key: "partos", width: 8 },
     { header: "IEP promedio (días)", key: "iepPromedio", width: 18 },
     { header: "Últimos días abiertos", key: "ultimosDiasAbiertos", width: 18 },
+    { header: "Días abiertos hoy (sin preñez)", key: "diasAbiertosHoy", width: 24 },
     { header: "Servicios en el período", key: "servicios", width: 18 },
     { header: "Preñeces en el período", key: "concepciones", width: 18 },
   ];

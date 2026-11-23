@@ -120,13 +120,50 @@ export const CAMPOS_REPRODUCCION: DefCampo[] = [
   ),
 ];
 
-/** Unidades animales por categoría (en `configuracion.cargaAnimal`). */
-export const CAMPOS_CARGA: DefCampo[] = CATEGORIAS.map((c) => ({
-  nombre: `ua_${c}`,
-  etiqueta: ETIQUETA_CATEGORIA[c],
-  tipo: "decimal",
-  requerido: true,
-  min: 0,
-  max: 3,
-  sufijo: "UA",
-}));
+/** Carga animal en UGG (en `configuracion.cargaAnimal`). */
+export const CAMPOS_CARGA: DefCampo[] = [
+  {
+    nombre: "kgUgg",
+    etiqueta: "Peso de una UGG",
+    tipo: "decimal",
+    requerido: true,
+    min: 300,
+    max: 600,
+    sufijo: "kg",
+    ayuda: "Unidad gran ganado: peso vivo que equivale a 1 UGG (referencia: 450 kg).",
+  },
+  ...CATEGORIAS.map(
+    (c): DefCampo => ({
+      nombre: `peso_${c}`,
+      etiqueta: `Peso estimado · ${ETIQUETA_CATEGORIA[c]}`,
+      tipo: "decimal",
+      requerido: true,
+      min: 1,
+      max: 1500,
+      sufijo: "kg",
+    }),
+  ),
+];
+
+/** Parámetros productivos (en `configuracion.produccion`). */
+export const CAMPOS_PRODUCCION: DefCampo[] = [
+  dias(
+    "diasControlLechero",
+    "Control lechero cada",
+    1,
+    60,
+    "Aviso si una vaca en producción lleva más días sin control.",
+  ),
+  ...CATEGORIAS.map(
+    (c): DefCampo => ({
+      nombre: `pesaje_${c}`,
+      etiqueta: `Pesar · ${ETIQUETA_CATEGORIA[c]}`,
+      tipo: "entero",
+      requerido: true,
+      min: 0,
+      max: 365,
+      sufijo: "días",
+      ayuda: "0 = no se pesa.",
+    }),
+  ),
+];

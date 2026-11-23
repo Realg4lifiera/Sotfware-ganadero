@@ -31,7 +31,7 @@ export default async function PaginaAlertas() {
     PENDIENTE_DIAGNOSTICO: `Servidas hace ${c.diasDiagnostico} días o más, sin diagnóstico.`,
     CELO_ESPERADO: `Servidas cerca del día ${c.diasCiclo} (o múltiplos): observar si repiten celo.`,
     VACIA_LARGA: `Sin preñez y con más de ${c.diasAbiertosMax} días desde el parto.`,
-    REPETIDORA: "Tres o más servicios en el ciclo sin preñez.",
+    REPETIDORA: "Tres o más servicios en el ciclo sin preñez: candidatas a descarte.",
   };
   return (
     <>

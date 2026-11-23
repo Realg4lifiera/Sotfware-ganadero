@@ -1,6 +1,6 @@
 /**
  * Producción de una lactancia a partir de controles lecheros periódicos (función pura).
- * Fórmulas PENDIENTES DE VALIDACIÓN con el veterinario:
+ * Fórmulas validadas con el veterinario (control lechero cada 8 días, lactancia a 305):
  *
  * - Curva por intervalos de control: del parto al primer control se toma el primer
  *   control; entre controles, una recta; del último control al secado, el último control.

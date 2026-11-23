@@ -113,7 +113,7 @@ export default async function GananciaPeso() {
         </div>
       )}
       <p className="text-muted-foreground mt-3 text-xs">
-        Fórmula pendiente de validar con el veterinario: (peso final − peso inicial) / días.
+        Ganancia diaria de peso: (peso final − peso inicial) / días entre pesajes.
       </p>
     </>
   );

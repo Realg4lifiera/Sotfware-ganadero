@@ -59,3 +59,14 @@ export async function animalesConCategoria(
     ),
   }));
 }
+
+/** Último peso registrado (kg) de cada animal con pesajes. */
+export async function ultimosPesos(): Promise<Map<string, number>> {
+  const pesajes = await prismaBase.pesaje.findMany({
+    where: { deletedAt: null },
+    orderBy: [{ animalId: "asc" }, { fecha: "desc" }, { createdAt: "desc" }],
+    distinct: ["animalId"],
+    select: { animalId: true, pesoKg: true },
+  });
+  return new Map(pesajes.map((p) => [p.animalId, Number(p.pesoKg)]));
+}

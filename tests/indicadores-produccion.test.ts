@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   diasSolapados,
   dividir,
+  generalesDeCarne,
   kilosGanadosEnPeriodo,
   sumaDias,
 } from "@/lib/indicadores/produccion";
@@ -44,5 +45,18 @@ describe("indicadores productivos", () => {
   it("división protegida", () => {
     expect(dividir(10, 4)).toBe(2.5);
     expect(dividir(10, 0)).toBeNull();
+  });
+});
+
+describe("generalesDeCarne", () => {
+  it("reparte los gastos generales según los animales-día de carne", () => {
+    // 300 de 1.200 animales-día son de cría, levante o ceba: les toca el 25 %.
+    expect(generalesDeCarne(2_000_000, 300, 1_200)).toBe(500_000);
+  });
+
+  it("no asigna nada sin gastos generales ni animales de carne", () => {
+    expect(generalesDeCarne(0, 300, 1_200)).toBe(0);
+    expect(generalesDeCarne(2_000_000, 0, 1_200)).toBe(0);
+    expect(generalesDeCarne(2_000_000, 300, 0)).toBe(0);
   });
 });

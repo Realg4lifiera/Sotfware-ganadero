@@ -120,9 +120,10 @@ export default async function IndicadoresCosto({ searchParams }: PageProps<"/cos
         </CardContent>
       </Card>
       <p className="text-muted-foreground mt-4 text-sm">
-        Costo por kilo ganado: costos de los centros Cría y levante y Ceba entre los kilos que
-        ganaron sus lotes. Costo por animal/día: costos del mes entre los animales-día. Fórmulas
-        pendientes de validación con el veterinario.
+        Costo por kilo ganado: costos de los centros Cría y levante y Ceba, más la parte de los
+        gastos generales sin centro (administración, arriendos, trabajadores) que les toca según
+        sus animales-día, entre los kilos que ganaron sus lotes. Costo por animal/día: costos del
+        mes entre los animales-día.
       </p>
     </>
   );

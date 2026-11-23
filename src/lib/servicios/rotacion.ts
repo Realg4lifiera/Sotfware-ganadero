@@ -2,11 +2,15 @@ import "server-only";
 import type { Tx } from "@/lib/auditoria";
 import { prismaBase } from "@/lib/db";
 import { idFinca } from "@/lib/finca";
-import { unidadesAnimales } from "@/lib/dominio/categoria";
+import { unidadesGranGanado } from "@/lib/dominio/categoria";
 import { ErrorNegocio } from "@/lib/errores";
 import { diasEntre, formatoFecha, hoy } from "@/lib/fechas";
 import type { Opcion } from "@/lib/formularios/campos";
-import { animalesConCategoria, obtenerConfiguracionFinca } from "@/lib/servicios/inventario";
+import {
+  animalesConCategoria,
+  obtenerConfiguracionFinca,
+  ultimosPesos,
+} from "@/lib/servicios/inventario";
 import { esquemaRotacion } from "@/lib/validaciones/rotacion";
 
 /**
@@ -85,10 +89,10 @@ export async function opcionesRotacion(): Promise<Record<string, Opcion[]>> {
   };
 }
 
-/** Estado actual de cada potrero: ocupación o descanso, animales y carga (UA/ha). */
+/** Estado actual de cada potrero: ocupación o descanso, animales y carga (UGG/ha). */
 export async function estadoPotreros() {
   const ref = hoy();
-  const [potreros, ocupaciones, animales, config, finca] = await Promise.all([
+  const [potreros, ocupaciones, animales, config, finca, pesos] = await Promise.all([
     prismaBase.potrero.findMany({ where: { deletedAt: null }, orderBy: { nombre: "asc" } }),
     prismaBase.ocupacionPotrero.findMany({
       where: { deletedAt: null },
@@ -98,8 +102,13 @@ export async function estadoPotreros() {
     animalesConCategoria(),
     obtenerConfiguracionFinca(),
     prismaBase.finca.findUnique({ where: { id: await idFinca() }, select: { areaUtilHa: true } }),
+    ultimosPesos(),
   ]);
-  const ua = config.cargaAnimal;
+  const carga = (grupo: typeof animales) =>
+    unidadesGranGanado(
+      grupo.map((a) => ({ categoria: a.categoria, pesoKg: pesos.get(a.id) ?? null })),
+      config.cargaAnimal,
+    );
   const filas = potreros.map((p) => {
     const abiertas = ocupaciones.filter((o) => o.potreroId === p.id && !o.fechaSalida);
     const ultimaSalida = ocupaciones
@@ -107,10 +116,7 @@ export async function estadoPotreros() {
       .map((o) => o.fechaSalida!)
       .sort((a, b) => b.getTime() - a.getTime())[0];
     const aqui = animales.filter((a) => a.potreroId === p.id);
-    const unidades = unidadesAnimales(
-      aqui.map((a) => a.categoria),
-      ua,
-    );
+    const unidades = carga(aqui);
     const area = p.areaHa ? Number(p.areaHa) : null;
     return {
       id: p.id,
@@ -125,21 +131,18 @@ export async function estadoPotreros() {
       })),
       descansoDias: abiertas.length === 0 && ultimaSalida ? diasEntre(ultimaSalida, ref) : null,
       animales: aqui.length,
-      ua: unidades,
-      cargaUaHa: area ? Math.round((unidades / area) * 100) / 100 : null,
+      ugg: unidades,
+      cargaUggHa: area ? Math.round((unidades / area) * 100) / 100 : null,
     };
   });
-  const totalUa = unidadesAnimales(
-    animales.map((a) => a.categoria),
-    ua,
-  );
+  const totalUgg = carga(animales);
   const areaPotreros = filas.reduce((s, f) => s + (f.areaHa ?? 0), 0);
   const area = finca?.areaUtilHa ? Number(finca.areaUtilHa) : areaPotreros;
   return {
     potreros: filas,
-    totalUa,
+    totalUgg,
     areaHa: area,
-    cargaUaHa: area ? Math.round((totalUa / area) * 100) / 100 : null,
+    cargaUggHa: area ? Math.round((totalUgg / area) * 100) / 100 : null,
     historial: ocupaciones.slice(0, 20).map((o) => ({
       id: o.id,
       lote: o.lote.nombre,

@@ -1,9 +1,11 @@
 /**
- * Indicadores productivos (funciones puras). PENDIENTES DE VALIDACIÓN con el veterinario:
+ * Indicadores productivos (funciones puras), validados con el veterinario:
  * - Kilos ganados en un período: la ganancia entre dos pesajes consecutivos se reparte
  *   por días; al período le toca la parte de los días que caen dentro de él.
  * - Animales-día: días que cada animal estuvo en la finca dentro del período (ingreso a
  *   salida). Base del costo por animal/día y de los litros por vaca/día.
+ * - Costo por kilo ganado: costos de cría, levante y ceba más la parte de los gastos
+ *   generales (administración, arriendos, trabajadores sin centro) que les corresponde.
  */
 import type { PesoFechado } from "./peso";
 
@@ -40,3 +42,12 @@ export function sumaDias(
 
 export const dividir = (a: number, b: number, decimales = 2) =>
   b > 0 ? Math.round((a / b) * 10 ** decimales) / 10 ** decimales : null;
+
+/**
+ * Parte de los gastos generales (sin centro de costo) que le toca a cría, levante y ceba:
+ * se reparte según los animales-día de sus lotes frente a los de toda la finca.
+ */
+export function generalesDeCarne(generales: number, diasCarne: number, diasTotal: number): number {
+  if (generales <= 0 || diasCarne <= 0 || diasTotal <= 0) return 0;
+  return Math.round((generales * Math.min(diasCarne, diasTotal)) / diasTotal);
+}

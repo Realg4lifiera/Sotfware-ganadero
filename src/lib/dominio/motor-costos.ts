@@ -144,7 +144,7 @@ export interface IndicadoresLeche {
 }
 
 /**
- * Indicadores del informe del productor (PENDIENTES DE VALIDACIÓN):
+ * Indicadores del informe del productor (validados: como el informe de Colanta):
  * costo/litro producido y vendido (total finca y solo lechería), utilidad y rentabilidad.
  */
 export function indicadoresLeche(i: IndicadoresLeche) {

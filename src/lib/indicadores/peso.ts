@@ -1,6 +1,6 @@
 /**
  * Ganancia diaria de peso (GDP) entre pesajes consecutivos, en g/día.
- * Fórmula (PENDIENTE DE VALIDACIÓN con el veterinario):
+ * Fórmula (validada con el veterinario):
  *   (peso final − peso inicial) / días entre pesajes × 1000
  */
 import { diasEntre } from "@/lib/fechas";

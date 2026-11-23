@@ -333,6 +333,15 @@ export const NAVEGACION: SeccionNav[] = [
     icono: "produccion",
     paginas: [
       {
+        titulo: "Pendientes",
+        href: "/produccion/pendientes",
+        icono: "alerta",
+        permisos: ["produccion:leer"],
+        estado: "lista",
+        descripcion: "Pesajes y controles lecheros atrasados.",
+        alcance: ["Pesar terneras, levante y ceba cada 30 días", "Control lechero cada 8 días"],
+      },
+      {
         titulo: "Ordeños",
         href: "/produccion/ordenos",
         icono: "ordeno",
@@ -402,7 +411,7 @@ export const NAVEGACION: SeccionNav[] = [
         alcance: [
           "Entrada y salida de lotes",
           "Días de ocupación y descanso",
-          "Carga animal (UA/ha)",
+          "Carga animal (UGG/ha)",
         ],
       },
       {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   diasAbiertos,
+  diasAbiertosEnCurso,
   edadPrimerParto,
   indicadoresReproductivos,
   intervalosEntrePartos,
@@ -69,5 +70,21 @@ describe("indicadores reproductivos", () => {
     expect(r.iepPromedio).toBeNull();
     expect(r.serviciosPorConcepcion).toBeNull();
     expect(r.tasaPrenez).toBeNull();
+  });
+});
+
+describe("diasAbiertosEnCurso", () => {
+  const d = (s: string) => new Date(`${s}T00:00:00Z`);
+  const hoy = d("2026-11-23");
+
+  it("cuenta desde el último parto si no ha concebido después", () => {
+    expect(diasAbiertosEnCurso([d("2025-01-10"), d("2026-08-25")], [d("2025-04-01")], hoy)).toBe(
+      90,
+    );
+  });
+
+  it("es null si ya concibió después del último parto o nunca ha parido", () => {
+    expect(diasAbiertosEnCurso([d("2026-06-01")], [d("2026-09-01")], hoy)).toBeNull();
+    expect(diasAbiertosEnCurso([], [], hoy)).toBeNull();
   });
 });

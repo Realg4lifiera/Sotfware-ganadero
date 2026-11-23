@@ -5,7 +5,7 @@ import {
   configuracionCargaSchema,
   configuracionHatoSchema,
   leerConfiguracion,
-  unidadesAnimales,
+  unidadesGranGanado,
   type DatosCategoria,
 } from "@/lib/dominio/categoria";
 import { fechaDesdeISO } from "@/lib/fechas";
@@ -78,15 +78,50 @@ describe("composicionHato", () => {
   });
 });
 
-describe("unidadesAnimales", () => {
-  it("suma las equivalencias por categoría", () => {
-    const ua = configuracionCargaSchema.parse({});
+describe("unidadesGranGanado", () => {
+  const c = configuracionCargaSchema.parse({});
+
+  it("usa 450 kg por UGG por defecto", () => {
+    expect(c.kgUgg).toBe(450);
+  });
+
+  it("divide la suma de pesos reales por el peso de una UGG", () => {
     expect(
-      unidadesAnimales(
-        ["VACA_PRODUCCION", "VACA_PRODUCCION", "NOVILLA", "TERNERA_LACTANTE", "TORO"],
-        ua,
+      unidadesGranGanado(
+        [
+          { categoria: "VACA_PRODUCCION", pesoKg: 500 },
+          { categoria: "VACA_PRODUCCION", pesoKg: 400 },
+        ],
+        c,
       ),
-    ).toBe(4.2);
-    expect(unidadesAnimales([], ua)).toBe(0);
+    ).toBe(2);
+  });
+
+  it("usa el peso estimado de la categoría si no hay pesaje", () => {
+    // 450 (vaca) + 80 (lactante) + 650 (toro) = 1.180 kg / 450.
+    expect(
+      unidadesGranGanado(
+        [
+          { categoria: "VACA_SECA", pesoKg: null },
+          { categoria: "TERNERA_LACTANTE", pesoKg: null },
+          { categoria: "TORO", pesoKg: null },
+        ],
+        c,
+      ),
+    ).toBe(2.62);
+    expect(unidadesGranGanado([], c)).toBe(0);
+  });
+
+  it("respeta el peso de UGG configurado", () => {
+    const c480 = configuracionCargaSchema.parse({ kgUgg: 480 });
+    expect(unidadesGranGanado([{ categoria: "NOVILLA", pesoKg: 480 }], c480)).toBe(1);
+  });
+
+  it("descarta la configuración vieja de factores por categoría", () => {
+    const vieja = leerConfiguracion({ cargaAnimal: { VACA_PRODUCCION: 1, NOVILLA: 0.7 } });
+    expect(vieja.cargaAnimal.kgUgg).toBe(450);
+    expect(vieja.produccion.diasControlLechero).toBe(8);
+    expect(vieja.produccion.diasPesaje.TERNERA).toBe(30);
+    expect(vieja.produccion.diasPesaje.VACA_PRODUCCION).toBe(0);
   });
 });

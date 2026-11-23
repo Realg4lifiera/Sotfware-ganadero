@@ -77,8 +77,8 @@ export default async function ReporteReproductivo({
         />
       </div>
       <p className="text-muted-foreground mb-4 text-xs">
-        Fórmulas pendientes de validación con el veterinario. Cada indicador cuenta los eventos
-        ocurridos en el período.
+        Fórmulas validadas con el veterinario. Cada indicador cuenta los eventos ocurridos en el
+        período. «Abiertos hoy»: días desde el último parto de las vacas que aún no quedan preñadas.
       </p>
       <Card>
         <CardHeader>
@@ -93,6 +93,7 @@ export default async function ReporteReproductivo({
                 <TableHead className="text-right">Partos</TableHead>
                 <TableHead className="text-right">IEP</TableHead>
                 <TableHead className="hidden text-right md:table-cell">Días abiertos</TableHead>
+                <TableHead className="text-right">Abiertos hoy</TableHead>
                 <TableHead className="hidden text-right md:table-cell">Servicios</TableHead>
                 <TableHead className="hidden text-right md:table-cell">Preñeces</TableHead>
               </TableRow>
@@ -113,6 +114,9 @@ export default async function ReporteReproductivo({
                   <TableCell className="text-right tabular-nums">{num(f.iepPromedio)}</TableCell>
                   <TableCell className="hidden text-right tabular-nums md:table-cell">
                     {num(f.ultimosDiasAbiertos)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {num(f.diasAbiertosHoy)}
                   </TableCell>
                   <TableCell className="hidden text-right tabular-nums md:table-cell">
                     {f.servicios}

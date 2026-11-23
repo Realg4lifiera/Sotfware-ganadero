@@ -792,8 +792,7 @@ function PestanaProduccion({ a }: { a: HojaVida }) {
               </Table>
             )}
             <p className="text-muted-foreground mt-3 px-5 text-xs sm:px-0">
-              Producción estimada con los controles lecheros (pendiente de validar con el
-              veterinario).
+              Producción estimada con los controles lecheros (cada 8 días) y ajustada a 305 días.
             </p>
           </CardContent>
         </Card>

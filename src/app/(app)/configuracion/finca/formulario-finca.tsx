@@ -10,6 +10,7 @@ import {
   CAMPOS_COSTOS,
   CAMPOS_FINCA,
   CAMPOS_HATO,
+  CAMPOS_PRODUCCION,
   CAMPOS_REPRODUCCION,
 } from "@/lib/catalogos/finca";
 import { esquemaDesdeCampos, type ValoresFormulario } from "@/lib/formularios/campos";
@@ -29,6 +30,8 @@ export function FormularioFinca({ valores }: { valores: ValoresFormulario }) {
         ...CAMPOS_HATO,
         ...CAMPOS_COSTOS,
         ...CAMPOS_REPRODUCCION,
+        ...CAMPOS_PRODUCCION,
+        ...CAMPOS_CARGA,
       ]),
     [],
   );
@@ -133,9 +136,30 @@ export function FormularioFinca({ valores }: { valores: ValoresFormulario }) {
       </Card>
       <Card>
         <CardHeader>
+          <CardTitle>Producción</CardTitle>
+          <CardDescription>
+            Frecuencia del control lechero y de los pesajes por categoría, para los avisos de
+            pendientes.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {CAMPOS_PRODUCCION.map((c) => (
+            <CampoFormulario
+              key={c.nombre}
+              campo={c}
+              register={register}
+              errores={errors}
+              valorInicial={valores[c.nombre]}
+            />
+          ))}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
           <CardTitle>Carga animal</CardTitle>
           <CardDescription>
-            Unidades animales (UA) por categoría para calcular UA/ha.
+            Unidades gran ganado (UGG) por hectárea: el peso de cada animal (último pesaje o, si no
+            tiene, el estimado de su categoría) dividido por el peso de una UGG.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-4 lg:grid-cols-4">

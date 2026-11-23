@@ -9,6 +9,11 @@ import { requierePermiso } from "@/lib/sesion";
 import { TITULO_ALERTA, type TipoAlerta } from "@/lib/dominio/alertas-reproductivas";
 import { informeDelMes } from "@/lib/servicios/costos";
 import { alertasDelHato } from "@/lib/servicios/indicadores-reproductivos";
+import { avisosDelHato } from "@/lib/servicios/avisos-productivos";
+import {
+  TITULO_AVISO_PRODUCTIVO,
+  type TipoAvisoProductivo,
+} from "@/lib/dominio/alertas-productivas";
 import { retirosVigentes } from "@/lib/servicios/sanidad";
 import { animalesConCategoria, obtenerConfiguracionFinca } from "@/lib/servicios/inventario";
 import { litrosDelPeriodo } from "@/lib/servicios/leche";
@@ -25,7 +30,9 @@ const ALERTAS_TABLERO: TipoAlerta[] = [
   "PENDIENTE_DIAGNOSTICO",
   "CELO_ESPERADO",
   "VACIA_LARGA",
+  "REPETIDORA",
 ];
+const AVISOS_TABLERO: TipoAvisoProductivo[] = ["PESAJE_PENDIENTE", "CONTROL_LECHERO"];
 
 function Indicador({
   titulo,
@@ -70,13 +77,14 @@ export default async function Tablero() {
   const verSanidad = puede(usuario.rol, "sanidad:leer");
   const mesISO = mesActualISO();
   const { desde, hasta } = rangoMes(mesISO);
-  const [animales, config, litros, informe, alertas, retiros] = await Promise.all([
+  const [animales, config, litros, informe, alertas, retiros, avisos] = await Promise.all([
     animalesConCategoria(),
     obtenerConfiguracionFinca(),
     litrosDelPeriodo(desde, hasta),
     verCostos ? informeDelMes(mesISO) : null,
     verRepro ? alertasDelHato() : [],
     verSanidad ? retirosVigentes() : [],
+    avisosDelHato(),
   ]);
   const enRetiroLeche = retiros.filter((r) => r.lecheHasta && r.enProduccion).length;
   const categorias = animales.map((a) => a.categoria);
@@ -177,8 +185,8 @@ export default async function Tablero() {
               </CardTitle>
               <CardDescription>
                 {verRepro || verSanidad
-                  ? "Reproducción y sanidad del hato."
-                  : "Sin alertas para tu rol."}
+                  ? "Reproducción, sanidad y producción del hato."
+                  : "Producción del hato."}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -211,15 +219,20 @@ export default async function Tablero() {
                     </Link>
                   </li>
                 )}
-                {["Pesajes pendientes"].map((a) => (
-                  <li
-                    key={a}
-                    className="bg-muted/60 flex items-center justify-between gap-2 rounded-md px-3 py-2"
-                  >
-                    {a}
-                    <Badge variant="secondary">Próximamente</Badge>
-                  </li>
-                ))}
+                {AVISOS_TABLERO.map((tipo) => {
+                  const n = avisos.filter((a) => a.tipo === tipo).length;
+                  return (
+                    <li key={tipo}>
+                      <Link
+                        href={`/produccion/pendientes#${tipo.toLowerCase()}`}
+                        className="bg-muted/60 hover:bg-muted flex items-center justify-between gap-2 rounded-md px-3 py-2"
+                      >
+                        {TITULO_AVISO_PRODUCTIVO[tipo]}
+                        <Badge variant={n ? "accent" : "secondary"}>{n}</Badge>
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             </CardContent>
           </Card>

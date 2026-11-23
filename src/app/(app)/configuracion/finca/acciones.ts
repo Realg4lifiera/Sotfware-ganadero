@@ -7,6 +7,7 @@ import {
   CAMPOS_COSTOS,
   CAMPOS_FINCA,
   CAMPOS_HATO,
+  CAMPOS_PRODUCCION,
   CAMPOS_REPRODUCCION,
 } from "@/lib/catalogos/finca";
 import {
@@ -26,6 +27,7 @@ export async function guardarFinca(valores: unknown): Promise<ResultadoAccion> {
       ...CAMPOS_COSTOS,
       ...CAMPOS_REPRODUCCION,
       ...CAMPOS_CARGA,
+      ...CAMPOS_PRODUCCION,
     ]).parse(valores) as Record<string, unknown>;
     const ideal = Object.fromEntries(CATEGORIAS_HATO.map((c) => [c, Number(datos[`ideal_${c}`])]));
     const suma = Object.values(ideal).reduce((a, b) => a + b, 0);
@@ -41,7 +43,14 @@ export async function guardarFinca(valores: unknown): Promise<ResultadoAccion> {
         porcentajeIdeal: ideal,
       },
       costos: { ivaEsCosto: datos.ivaEsCosto === true },
-      cargaAnimal: Object.fromEntries(CATEGORIAS.map((c) => [c, Number(datos[`ua_${c}`])])),
+      cargaAnimal: {
+        kgUgg: Number(datos.kgUgg),
+        pesoEstimado: Object.fromEntries(CATEGORIAS.map((c) => [c, Number(datos[`peso_${c}`])])),
+      },
+      produccion: {
+        diasControlLechero: Number(datos.diasControlLechero),
+        diasPesaje: Object.fromEntries(CATEGORIAS.map((c) => [c, Number(datos[`pesaje_${c}`])])),
+      },
       reproduccion: Object.fromEntries(
         CAMPOS_REPRODUCCION.map((c) => [c.nombre, Number(datos[c.nombre])]),
       ),

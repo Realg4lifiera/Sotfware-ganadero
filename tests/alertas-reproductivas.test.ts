@@ -76,7 +76,7 @@ describe("alertasReproductivas", () => {
     expect(tipos({ estado: "PARIDA", ultimoParto: hace(120) })).toEqual([]);
     expect(tipos({ estado: "VACIA", ultimoParto: hace(150), serviciosCiclo: 3 })).toEqual([
       "VACIA_LARGA: 150 días abiertos · 3 servicios",
-      "REPETIDORA: 3 servicios sin preñez en el ciclo",
+      "REPETIDORA: 3 servicios sin preñez en el ciclo · evaluar descarte",
     ]);
     // Preñada no es vacía larga aunque haya parido hace mucho.
     expect(tipos({ estado: "PRENADA", ultimoParto: hace(200), serviciosCiclo: 3 })).toEqual([]);

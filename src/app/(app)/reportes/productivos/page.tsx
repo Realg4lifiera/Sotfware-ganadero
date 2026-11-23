@@ -66,8 +66,8 @@ export default async function ReporteProductivo({
         />
         <TarjetaResumen
           titulo="Carga animal"
-          valor={nulo(carga.cargaUaHa, (x) => `${formatoNumero(x)} UA/ha`)}
-          detalle={`Hoy · ${formatoNumero(carga.totalUa, 1)} UA`}
+          valor={nulo(carga.cargaUggHa, (x) => `${formatoNumero(x)} UGG/ha`)}
+          detalle={`Hoy · ${formatoNumero(carga.totalUgg, 1)} UGG`}
         />
       </div>
       <h2 className="font-display mb-2 text-lg font-semibold">Carne y costos</h2>
@@ -80,7 +80,7 @@ export default async function ReporteProductivo({
         <TarjetaResumen
           titulo="Costo por kilo ganado"
           valor={nulo(i.costoKiloGanado, formatoCOP)}
-          detalle={`Costos de cría, levante y ceba: ${formatoCOP(i.costoCarne)}`}
+          detalle={`Cría, levante y ceba ${formatoCOP(i.costoCentrosCarne)} + gastos generales ${formatoCOP(i.generalesCarne)}`}
         />
         <TarjetaResumen
           titulo="Costo por animal/día"
@@ -122,7 +122,7 @@ export default async function ReporteProductivo({
         </CardContent>
       </Card>
       <p className="text-muted-foreground mt-3 text-xs">
-        Fórmulas pendientes de validación con el veterinario. Los kilos ganados reparten por días la
+        Fórmulas validadas con el veterinario. Los kilos ganados reparten por días la
         ganancia entre pesajes; los animales-día cuentan los días que cada animal estuvo en la finca
         en el mes.
       </p>

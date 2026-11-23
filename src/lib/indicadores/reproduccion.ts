@@ -1,6 +1,6 @@
 /**
  * Indicadores reproductivos (funciones puras). Fórmulas del glosario de CLAUDE.md,
- * PENDIENTES DE VALIDACIÓN con el veterinario:
+ * validadas con el veterinario:
  * - IEP: días entre dos partos consecutivos de la misma vaca.
  * - Días abiertos: del parto a la concepción (servicio con preñez confirmada).
  * - Servicios por concepción: servicios / preñeces confirmadas.
@@ -39,6 +39,20 @@ export function diasAbiertos(partos: Date[], concepciones: Date[]): number[] {
     const siguiente = c.find((x) => x > p);
     return siguiente ? [diasEntre(p, siguiente)] : [];
   });
+}
+
+/**
+ * Días abiertos que lleva hoy una vaca que todavía no ha quedado preñada: desde su último
+ * parto hasta `referencia`. Null si no ha parido o ya concibió después del último parto.
+ */
+export function diasAbiertosEnCurso(
+  partos: Date[],
+  concepciones: Date[],
+  referencia: Date,
+): number | null {
+  const ultimo = ordenar(partos).at(-1);
+  if (!ultimo || concepciones.some((c) => c > ultimo)) return null;
+  return diasEntre(ultimo, referencia);
 }
 
 /**

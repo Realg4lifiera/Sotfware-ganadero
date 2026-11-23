@@ -1,14 +1,18 @@
 import "server-only";
 import { ETIQUETA_ESTADO_REPRODUCTIVO } from "@/lib/etiquetas";
-import { rangoMes } from "@/lib/fechas";
+import { hoy, rangoMes } from "@/lib/fechas";
 import {
   diasAbiertos,
+  diasAbiertosEnCurso,
   indicadoresReproductivos,
   intervalosEntrePartos,
   promedio,
 } from "@/lib/indicadores/reproduccion";
 import { historiasReproductivas } from "@/lib/servicios/indicadores-reproductivos";
 import type { EstadoReproductivo } from "@/generated/prisma/enums";
+
+/** Estados en los que la vaca sigue sin preñez (sus días abiertos siguen corriendo). */
+const SIN_PRENEZ: string[] = ["PARIDA", "VACIA", "SERVIDA"];
 
 /** Reporte de los 12 meses que terminan en `mes` ("AAAA-MM", incluido). */
 export async function reporteReproductivo(mes: string) {
@@ -29,6 +33,9 @@ export async function reporteReproductivo(mes: string) {
         partos: h.numeroPartos,
         iepPromedio: promedio(intervalosEntrePartos(h.partos)),
         ultimosDiasAbiertos: abiertos.at(-1) ?? null,
+        diasAbiertosHoy: SIN_PRENEZ.includes(h.estadoReproductivo ?? "")
+          ? diasAbiertosEnCurso(h.partos, h.concepciones, hoy())
+          : null,
         servicios: h.servicios.filter(enPeriodo).length,
         concepciones: h.concepciones.filter(enPeriodo).length,
       };
