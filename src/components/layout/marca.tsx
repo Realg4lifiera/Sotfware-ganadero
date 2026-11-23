@@ -3,8 +3,8 @@ import Link from "next/link";
 import { ArrowLeftRight } from "lucide-react";
 
 /**
- * Marca del software y finca activa. Con varias fincas, el nombre de la finca lleva a
- * "Mis fincas" para cambiar de finca.
+ * Marca del software y finca activa. Con varias fincas (o para el administrador), el
+ * nombre de la finca lleva a "Mis fincas" para cambiar de finca o crear otra.
  */
 export function Marca({
   nombreFinca,

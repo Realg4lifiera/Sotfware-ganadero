@@ -39,8 +39,9 @@ function Dato({
 export default async function MisFincas() {
   const usuario = await requiereSesion();
   const fincas = await fincasAccesibles(usuario);
-  // Con una sola finca se entra directo.
-  if (fincas.length === 1) redirect(`/fincas/entrar/${fincas[0].id}`);
+  // Con una sola finca se entra directo, salvo quien gestiona fincas (para crear otras).
+  if (fincas.length === 1 && !puede(usuario.rol, "finca:gestionar"))
+    redirect(`/fincas/entrar/${fincas[0].id}`);
   const resumen = await resumenFincas(usuario, fincas);
   const mes = nombreMes(mesActualISO());
   return (

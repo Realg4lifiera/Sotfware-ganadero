@@ -3,7 +3,7 @@ import { KeyRound } from "lucide-react";
 import { redirect } from "next/navigation";
 import { formatoFechaHora } from "@/lib/fechas";
 import { navegacionPara } from "@/lib/navegacion";
-import { ETIQUETA_ROL } from "@/lib/permisos";
+import { ETIQUETA_ROL, puede } from "@/lib/permisos";
 import { fincaActual, fincasAccesibles } from "@/lib/finca-sesion";
 import { requiereSesion } from "@/lib/sesion";
 import { ListaNavegacion } from "@/components/layout/lista-navegacion";
@@ -17,7 +17,9 @@ export default async function LayoutApp({ children }: LayoutProps<"/">) {
   const finca = await fincaActual();
   if (!finca) redirect("/fincas");
   const nombreFinca = finca.nombre;
-  const variasFincas = (await fincasAccesibles(usuario)).length > 1;
+  // Con varias fincas, o si puede crear fincas (administrador), se llega a "Mis fincas".
+  const variasFincas =
+    puede(usuario.rol, "finca:gestionar") || (await fincasAccesibles(usuario)).length > 1;
   const secciones = navegacionPara(usuario.rol);
   const registrosRapidos = secciones.flatMap((s) => s.paginas).filter((p) => p.registroRapido);
   const rol = ETIQUETA_ROL[usuario.rol];
