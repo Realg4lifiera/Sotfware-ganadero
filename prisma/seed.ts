@@ -14,11 +14,12 @@ import { PrismaClient, type EstadoReproductivo, type Sexo } from "../src/generat
 import { conFinca, contextoFinca, extensionFinca } from "../src/lib/finca";
 import { calcularCategoria, type CategoriaAnimal } from "../src/lib/dominio/categoria";
 import { hoy } from "../src/lib/fechas";
+import { configuracionPg } from "../src/lib/conexion-bd";
 import { crearCatalogosGlobales, crearCentrosFinca } from "./catalogos-base";
 
 // Con la extensión de finca: dentro de conFinca() cada registro queda en su finca.
 const base = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+  adapter: new PrismaPg(configuracionPg()),
 });
 const prisma = base.$extends(extensionFinca);
 /** Finca del contexto: las creaciones anidadas no pasan por la extensión y la llevan explícita. */

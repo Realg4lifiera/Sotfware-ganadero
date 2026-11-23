@@ -57,7 +57,7 @@ replica sus conceptos (no se integra con Colanta):
   `cacheComponents` está **desactivado**: toda página es dinámica (depende de la sesión).
   En Next 16 el middleware se llama `src/proxy.ts`. Lee `node_modules/next/dist/docs/`
   antes de usar APIs de Next que no conozcas bien.
-- PostgreSQL (Neon en producción, local con docker-compose) + Prisma 7 (`prisma-client`
+- PostgreSQL (Supabase en producción, local con docker-compose) + Prisma 7 (`prisma-client`
   generator con salida en `src/generated/prisma`, adaptador `@prisma/adapter-pg`,
   configuración en `prisma.config.ts`).
 - Auth.js v5 (`next-auth@5.0.0-beta.32`, versión fija) con credenciales y sesión JWT;
@@ -302,7 +302,15 @@ control lechero cada 8 días; pesar terneras, novillas (levante) y machos de lev
 cada 30 días; vacas y toros no se pesan (0). Sin pesajes, el aviso cuenta desde el ingreso;
 el control lechero cuenta desde el parto o el último control (por vaca o por su lote).
 
-Pendiente: conectar la base de datos de producción (Neon) y desplegar en Vercel.
+Hecho (BD de producción): Supabase, proyecto `software-ganadero` (`ipeaosbiklcimupkrjrc`,
+us-east-1, plan Free, organización administrada por Vercel Marketplace), migraciones
+aplicadas. Data API desactivada y RLS automático en tablas nuevas. Conexión: transaction
+pooler (6543) en `DATABASE_URL`, session pooler (5432) en `DATABASE_URL_UNPOOLED`; las
+credenciales viven en `.env.produccion` (ignorado por git) y se usan con `npm run prod:*`.
+TLS: `lib/conexion-bd.ts` (`configuracionPg`) y `prisma.config.ts` (`sslmode=require`).
+
+Pendiente: carga inicial en producción (`npm run prod:inicial`, la corre el usuario) y
+despliegue en Vercel.
 
 ## Glosario de indicadores (validado con el veterinario)
 

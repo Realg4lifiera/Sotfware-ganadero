@@ -20,7 +20,10 @@
     "postinstall": "prisma generate",
     "check": "npm run lint && npm run typecheck && npm run test",
     "test:bd": "PRUEBAS_BD=1 vitest run",
-    "db:inicial": "tsx prisma/inicial.ts"
+    "db:inicial": "tsx prisma/inicial.ts",
+    "prod:migrar": "node --env-file=.env.produccion ./node_modules/prisma/build/index.js migrate deploy",
+    "prod:estado": "node --env-file=.env.produccion ./node_modules/prisma/build/index.js migrate status",
+    "prod:inicial": "node --env-file=.env.produccion --import tsx prisma/inicial.ts"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",

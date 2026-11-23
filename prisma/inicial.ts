@@ -3,26 +3,45 @@
  * administrador y los catálogos base. Las demás fincas se crean desde la aplicación. Uso:
  *
  *   FINCA_NOMBRE="La Arboleda" ADMIN_CLAVE="una-clave-segura" npm run db:inicial
+ *   npm run prod:inicial      (contra Supabase, con .env.produccion; pregunta los datos)
  *
+ * Lo que no venga en variables (FINCA_NOMBRE, ADMIN_CLAVE) se pregunta en la terminal.
  * Variables opcionales: ADMIN_USUARIO (por defecto "admin"), ADMIN_NOMBRE.
  * El administrador deberá cambiar la contraseña al entrar.
  */
 import "dotenv/config";
+import { createInterface } from "node:readline/promises";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { configuracionPg } from "../src/lib/conexion-bd";
 import { configuracionFincaSchema } from "../src/lib/dominio/categoria";
 import { conFinca, extensionFinca } from "../src/lib/finca";
 import { crearCatalogosGlobales, crearCentrosFinca } from "./catalogos-base";
 
 const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+  adapter: new PrismaPg(configuracionPg()),
 }).$extends(extensionFinca);
 
+/** Valor de la variable de entorno o, si falta y hay terminal, lo pregunta. */
+async function dato(variable: string, pregunta: string): Promise<string> {
+  const valor = process.env[variable];
+  if (valor || !process.stdin.isTTY) return valor ?? "";
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    return await rl.question(pregunta);
+  } finally {
+    rl.close();
+  }
+}
+
 async function main() {
-  const nombreFinca = process.env.FINCA_NOMBRE?.trim();
+  const nombreFinca = (await dato("FINCA_NOMBRE", "Nombre de la primera finca: ")).trim();
   const usuario = (process.env.ADMIN_USUARIO ?? "admin").trim().toLowerCase();
-  const clave = process.env.ADMIN_CLAVE ?? "";
+  const clave = await dato(
+    "ADMIN_CLAVE",
+    `Contraseña inicial del usuario «${usuario}» (mínimo 8 caracteres; se cambia al entrar): `,
+  );
   if (!nombreFinca) throw new Error("Falta FINCA_NOMBRE.");
   if (clave.length < 8) throw new Error("ADMIN_CLAVE debe tener al menos 8 caracteres.");
   if (!/^[a-z0-9._-]{3,30}$/.test(usuario)) throw new Error("ADMIN_USUARIO no es válido.");

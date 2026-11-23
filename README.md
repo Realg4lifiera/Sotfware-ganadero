@@ -9,7 +9,7 @@ El contexto completo para desarrollar está en [`CLAUDE.md`](CLAUDE.md).
 ## Requisitos
 
 - Node.js 22 o superior
-- PostgreSQL 16 (local con Docker, o [Neon](https://neon.tech) en la nube)
+- PostgreSQL 16 o superior (local con Docker, o [Supabase](https://supabase.com) en la nube)
 
 ## Instalación local
 
@@ -57,25 +57,35 @@ El administrador entra a las dos fincas de prueba; los demás usuarios solo a Ca
 | `npm run db:seed`             | Cargar datos de prueba (BD vacía)                                                    |
 | `npm run db:reset`            | Borrar la BD local, migrar y sembrar de nuevo                                        |
 | `npm run db:inicial`          | Carga inicial de producción (finca + administrador + catálogos, sin datos de prueba) |
+| `npm run prod:estado`         | Ver las migraciones pendientes en Supabase (lee `.env.produccion`)                   |
+| `npm run prod:migrar`         | Aplicar las migraciones en Supabase                                                  |
+| `npm run prod:inicial`        | Carga inicial en Supabase (pregunta la finca y la contraseña del administrador)      |
 
 ## Despliegue en Vercel
 
-1. **Base de datos (Neon).** En el proyecto de Vercel, _Storage › Marketplace › Neon_.
-   La integración crea `DATABASE_URL` (con pool, la usa la app) y `DATABASE_URL_UNPOOLED`
-   (directa, la usan las migraciones).
+1. **Base de datos (Supabase).** Proyecto `software-ganadero` en `us-east-1` (plan Free),
+   con la **Data API desactivada** y RLS en todas las tablas: la app entra directo a
+   PostgreSQL, nadie más. En _Connect › Connection string › URI_ están las dos cadenas:
+   - `DATABASE_URL`: «Transaction pooler» (puerto 6543), la usa la app.
+   - `DATABASE_URL_UNPOOLED`: «Session pooler» (puerto 5432), la usan las migraciones.
+
+   Van en `.env.produccion` (para los comandos `prod:*` desde tu computador) y en las
+   variables de Vercel. Sin `sslmode` en la URL: la app cifra la conexión sola
+   (`lib/conexion-bd.ts`). El plan Free pausa el proyecto tras una semana sin uso.
+
 2. **Archivos (Vercel Blob).** _Storage › Blob › Create_ con acceso **privado** y conéctalo al
    proyecto (crea `BLOB_READ_WRITE_TOKEN`). Las fotos y soportes solo se sirven a usuarios
    con sesión, a través de `/api/archivos/…`.
 3. **Variables de entorno** (Settings › Environment Variables):
+   - `DATABASE_URL` y `DATABASE_URL_UNPOOLED` (las de Supabase).
    - `AUTH_SECRET`: genera una con `openssl rand -base64 32`.
    - `ALMACENAMIENTO=vercel-blob`
 4. **Build.** En _Settings › Build and Deployment_ usa como comando de build
    `npm run db:deploy && npm run build` para aplicar migraciones en cada despliegue.
-5. **Carga inicial** (una sola vez, desde tu computador con las variables de Neon):
+5. **Carga inicial** (una sola vez, desde tu computador con `.env.produccion`):
 
    ```bash
-   DATABASE_URL="<url de Neon>" FINCA_NOMBRE="Nombre de la finca" \
-   ADMIN_USUARIO="admin" ADMIN_CLAVE="una-clave-segura" npm run db:inicial
+   npm run prod:inicial
    ```
 
    Crea la primera finca, el administrador (deberá cambiar la contraseña al entrar) y los

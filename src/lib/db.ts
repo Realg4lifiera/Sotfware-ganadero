@@ -1,6 +1,7 @@
 import "server-only";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/generated/prisma/client";
+import { configuracionPg } from "@/lib/conexion-bd";
 import { extensionFinca, registrarResolvedorFinca } from "@/lib/finca";
 
 /**
@@ -9,7 +10,7 @@ import { extensionFinca, registrarResolvedorFinca } from "@/lib/finca";
  * negocio van por `db` de `lib/auditoria.ts`.
  */
 function crearCliente() {
-  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+  const adapter = new PrismaPg(configuracionPg());
   return new PrismaClient({ adapter }).$extends(extensionFinca);
 }
 
