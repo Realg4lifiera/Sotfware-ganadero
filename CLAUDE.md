@@ -308,9 +308,13 @@ aplicadas. Data API desactivada y RLS automático en tablas nuevas. Conexión: t
 pooler (6543) en `DATABASE_URL`, session pooler (5432) en `DATABASE_URL_UNPOOLED`; las
 credenciales viven en `.env.produccion` (ignorado por git) y se usan con `npm run prod:*`.
 TLS: `lib/conexion-bd.ts` (`configuracionPg`) y `prisma.config.ts` (`sslmode=require`).
+En Vercel (proyecto `sotfware-ganadero`, https://sotfware-ganadero.vercel.app, despliega
+con cada push) la BD llega por la integración de Supabase con prefijo `POSTGRES`:
+`POSTGRES_PRISMA_URL` / `POSTGRES_URL_NON_POOLING` (fallback de `urlBaseDatos()` /
+`urlMigraciones()`).
 
-Pendiente: carga inicial en producción (`npm run prod:inicial`, la corre el usuario) y
-despliegue en Vercel.
+Pendiente: carga inicial en producción (`npm run prod:inicial`, la corre el usuario);
+en Vercel, Blob privado + `ALMACENAMIENTO=vercel-blob` para fotos y soportes.
 
 ## Glosario de indicadores (validado con el veterinario)
 

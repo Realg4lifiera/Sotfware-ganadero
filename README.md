@@ -69,15 +69,17 @@ El administrador entra a las dos fincas de prueba; los demás usuarios solo a Ca
    - `DATABASE_URL`: «Transaction pooler» (puerto 6543), la usa la app.
    - `DATABASE_URL_UNPOOLED`: «Session pooler» (puerto 5432), la usan las migraciones.
 
-   Van en `.env.produccion` (para los comandos `prod:*` desde tu computador) y en las
-   variables de Vercel. Sin `sslmode` en la URL: la app cifra la conexión sola
-   (`lib/conexion-bd.ts`). El plan Free pausa el proyecto tras una semana sin uso.
+   Van en `.env.produccion` (para los comandos `prod:*` desde tu computador). En Vercel
+   no se copian: el almacén `supabase-software-ganadero` está conectado al proyecto
+   (_Storage_, prefijo `POSTGRES`) y crea `POSTGRES_PRISMA_URL` y
+   `POSTGRES_URL_NON_POOLING`, que la app usa si faltan las anteriores. La app cifra la
+   conexión sola (`lib/conexion-bd.ts`). El plan Free pausa el proyecto tras una semana
+   sin uso.
 
 2. **Archivos (Vercel Blob).** _Storage › Blob › Create_ con acceso **privado** y conéctalo al
    proyecto (crea `BLOB_READ_WRITE_TOKEN`). Las fotos y soportes solo se sirven a usuarios
    con sesión, a través de `/api/archivos/…`.
 3. **Variables de entorno** (Settings › Environment Variables):
-   - `DATABASE_URL` y `DATABASE_URL_UNPOOLED` (las de Supabase).
    - `AUTH_SECRET`: genera una con `openssl rand -base64 32`.
    - `ALMACENAMIENTO=vercel-blob`
 4. **Build.** En _Settings › Build and Deployment_ usa como comando de build
