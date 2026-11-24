@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
-import { FilterX, Search } from "lucide-react";
+import { FilterX, Search, SlidersHorizontal } from "lucide-react";
 import { CATEGORIAS, ETIQUETA_CATEGORIA, type CategoriaAnimal } from "@/lib/dominio/categoria";
 import { ETIQUETA_ESTADO_ANIMAL } from "@/lib/etiquetas";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +62,8 @@ export function VistaAnimales({
 }) {
   const router = useRouter();
   const [f, setF] = useState(filtrosIniciales);
+  // En celular los filtros van plegados para que la lista se vea de una vez.
+  const [verFiltros, setVerFiltros] = useState(false);
 
   const cambiar = (k: keyof FiltrosAnimales, v: string) => {
     const nuevos = { ...f, [k]: v };
@@ -162,21 +164,40 @@ export function VistaAnimales({
   );
 
   const hayFiltros = JSON.stringify(f) !== JSON.stringify(VACIOS);
+  const filtrosActivos =
+    [f.categoria, f.lote, f.potrero, f.sexo].filter(Boolean).length +
+    (f.estado && f.estado !== "ACTIVO" ? 1 : 0);
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="relative">
-        <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-        <Input
-          type="search"
-          value={f.q}
-          onChange={(e) => cambiar("q", e.target.value)}
-          placeholder="Buscar por número o nombre…"
-          className="h-11 pl-9"
-          aria-label="Buscar por número o nombre"
-        />
+      <div className="flex gap-2">
+        <div className="relative min-w-0 flex-1">
+          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+          <Input
+            type="search"
+            value={f.q}
+            onChange={(e) => cambiar("q", e.target.value)}
+            placeholder="Buscar por número o nombre…"
+            className="h-11 pl-9"
+            aria-label="Buscar por número o nombre"
+          />
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 md:hidden"
+          aria-expanded={verFiltros}
+          aria-controls="filtros-animales"
+          onClick={() => setVerFiltros((v) => !v)}
+        >
+          <SlidersHorizontal /> Filtros
+          {filtrosActivos > 0 && <Badge variant="accent">{filtrosActivos}</Badge>}
+        </Button>
       </div>
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+      <div
+        id="filtros-animales"
+        className={`grid-cols-2 gap-2 md:grid md:grid-cols-5 ${verFiltros ? "grid" : "hidden"}`}
+      >
         <NativeSelect
           value={f.categoria}
           onChange={(e) => cambiar("categoria", e.target.value)}
@@ -237,19 +258,25 @@ export function VistaAnimales({
           <option value="TODOS">Todos los estados</option>
         </NativeSelect>
       </div>
-      {hayFiltros && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="self-start"
-          onClick={() => {
-            setF(VACIOS);
-            window.history.replaceState(null, "", "/animales");
-          }}
-        >
-          <FilterX /> Quitar filtros
-        </Button>
-      )}
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-muted-foreground text-sm" aria-live="polite">
+          {filtradas.length === 1
+            ? "1 animal"
+            : `${filtradas.length.toLocaleString("es-CO")} animales`}
+        </p>
+        {hayFiltros && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setF(VACIOS);
+              window.history.replaceState(null, "", "/animales");
+            }}
+          >
+            <FilterX /> Quitar filtros
+          </Button>
+        )}
+      </div>
       <TablaDatos
         columnas={columnas}
         datos={filtradas}

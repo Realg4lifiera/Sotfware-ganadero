@@ -46,6 +46,7 @@ export async function avisosDelHato(): Promise<AvisoProductivo[]> {
       numero: a.numero,
       nombre: a.nombre,
       categoria: a.categoria,
+      loteId: a.lote?.id ?? null,
       lote: a.lote?.nombre ?? null,
       fechaIngreso: a.fechaIngreso,
       ultimoPesaje: pesaje.get(a.id) ?? null,

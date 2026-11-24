@@ -24,13 +24,25 @@ export function TablaComposicion({
   conIdeal: boolean;
 }) {
   return (
-    <Table>
+    <Table className="[&_td]:px-2 sm:[&_td]:px-4 [&_th]:px-2 sm:[&_th]:px-4">
       <TableHeader>
         <TableRow>
           <TableHead>{titulo}</TableHead>
-          <TableHead className="text-right">Cantidad</TableHead>
-          <TableHead className="text-right">% actual</TableHead>
-          {conIdeal && <TableHead className="text-right">% ideal</TableHead>}
+          {/* En celular, encabezados cortos para que quepan las cuatro columnas. */}
+          <TableHead className="text-right">
+            <span className="sm:hidden">Cant.</span>
+            <span className="hidden sm:inline">Cantidad</span>
+          </TableHead>
+          <TableHead className="text-right">
+            <span className="sm:hidden">Real</span>
+            <span className="hidden sm:inline">% actual</span>
+          </TableHead>
+          {conIdeal && (
+            <TableHead className="text-right">
+              <span className="sm:hidden">Ideal</span>
+              <span className="hidden sm:inline">% ideal</span>
+            </TableHead>
+          )}
         </TableRow>
       </TableHeader>
       <TableBody>

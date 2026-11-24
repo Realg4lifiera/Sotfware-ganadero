@@ -18,7 +18,8 @@ function TabsList({ className, ...props }: React.ComponentProps<typeof TabsPrimi
     <TabsPrimitive.List
       data-slot="tabs-list"
       className={cn(
-        "bg-muted text-muted-foreground flex w-full [scrollbar-width:none] gap-1 overflow-x-auto rounded-lg p-1",
+        // En celular las pestañas se acomodan en varias filas: ninguna queda escondida.
+        "bg-muted text-muted-foreground flex w-full flex-wrap gap-1 rounded-lg p-1",
         className,
       )}
       {...props}
@@ -30,7 +31,7 @@ function TabsTrigger({ className, ...props }: React.ComponentProps<typeof TabsPr
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        "focus-visible:ring-ring/50 data-[state=active]:bg-card data-[state=active]:text-foreground inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-md px-3 text-sm font-semibold whitespace-nowrap transition-colors outline-none focus-visible:ring-[3px] data-[state=active]:shadow-xs [&_svg]:size-4",
+        "focus-visible:ring-ring/50 data-[state=active]:bg-card data-[state=active]:text-foreground inline-flex h-9 grow items-center justify-center gap-1.5 rounded-md px-3 text-sm font-semibold whitespace-nowrap transition-colors outline-none focus-visible:ring-[3px] data-[state=active]:shadow-xs sm:grow-0 [&_svg]:size-4",
         className,
       )}
       {...props}

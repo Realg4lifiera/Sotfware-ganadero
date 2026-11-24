@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AlertTriangle, Beef, HeartPulse, Milk, Wallet } from "lucide-react";
+import { AlertTriangle, Beef, CheckCircle2, HeartPulse, Milk, Wallet } from "lucide-react";
 import { composicionHato } from "@/lib/dominio/categoria";
 import Link from "next/link";
 import { formatoCOP, formatoLitros, formatoNumero, formatoPorcentaje } from "@/lib/formato";
@@ -17,6 +17,8 @@ import {
 import { retirosVigentes } from "@/lib/servicios/sanidad";
 import { animalesConCategoria, obtenerConfiguracionFinca } from "@/lib/servicios/inventario";
 import { litrosDelPeriodo } from "@/lib/servicios/leche";
+import { pasosIniciales } from "@/lib/servicios/primeros-pasos";
+import { PrimerosPasos } from "@/components/primeros-pasos";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EncabezadoPagina } from "@/components/layout/encabezado-pagina";
@@ -75,9 +77,10 @@ export default async function Tablero() {
   const verCostos = puede(usuario.rol, "costos:leer");
   const verRepro = puede(usuario.rol, "reproduccion:leer");
   const verSanidad = puede(usuario.rol, "sanidad:leer");
+  const configura = puede(usuario.rol, "configuracion:gestionar");
   const mesISO = mesActualISO();
   const { desde, hasta } = rangoMes(mesISO);
-  const [animales, config, litros, informe, alertas, retiros, avisos] = await Promise.all([
+  const [animales, config, litros, informe, alertas, retiros, avisos, pasos] = await Promise.all([
     animalesConCategoria(),
     obtenerConfiguracionFinca(),
     litrosDelPeriodo(desde, hasta),
@@ -85,6 +88,7 @@ export default async function Tablero() {
     verRepro ? alertasDelHato() : [],
     verSanidad ? retirosVigentes() : [],
     avisosDelHato(),
+    configura ? pasosIniciales() : [],
   ]);
   const enRetiroLeche = retiros.filter((r) => r.lecheHasta && r.enProduccion).length;
   const categorias = animales.map((a) => a.categoria);
@@ -102,12 +106,41 @@ export default async function Tablero() {
   const novillasPrenadas = prenadas.length - vacasPrenadas;
   const mes = formatoMes(hoy());
 
+  // Alertas del tablero: primero las que tienen casos; las que están en cero, en una línea.
+  const listaAlertas = [
+    ...(verRepro
+      ? ALERTAS_TABLERO.map((tipo) => ({
+          titulo: TITULO_ALERTA[tipo],
+          href: `/reproduccion/alertas#${tipo.toLowerCase()}`,
+          n: alertas.filter((a) => a.tipo === tipo).length,
+        }))
+      : []),
+    ...(verSanidad
+      ? [
+          {
+            titulo: "Vacas en retiro de leche",
+            href: "/produccion/sanidad#retiros",
+            n: enRetiroLeche,
+          },
+        ]
+      : []),
+    ...AVISOS_TABLERO.map((tipo) => ({
+      titulo: TITULO_AVISO_PRODUCTIVO[tipo],
+      href: `/produccion/pendientes#${tipo.toLowerCase()}`,
+      n: avisos.filter((a) => a.tipo === tipo).length,
+    })),
+  ];
+  const conCasos = listaAlertas.filter((a) => a.n > 0);
+  const alDia = listaAlertas.filter((a) => a.n === 0);
+
   return (
     <>
       <EncabezadoPagina
         titulo={`Hola, ${usuario.nombre.split(" ")[0]}`}
         descripcion={`Resumen de la finca · ${mes}`}
       />
+
+      {pasos.length > 0 && <PrimerosPasos pasos={pasos} />}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 [&>*]:min-w-0">
         <Indicador
@@ -190,50 +223,30 @@ export default async function Tablero() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ul className="flex flex-col gap-2 text-sm">
-                {verRepro &&
-                  ALERTAS_TABLERO.map((tipo) => {
-                    const n = alertas.filter((a) => a.tipo === tipo).length;
-                    return (
-                      <li key={tipo}>
-                        <Link
-                          href={`/reproduccion/alertas#${tipo.toLowerCase()}`}
-                          className="bg-muted/60 hover:bg-muted flex items-center justify-between gap-2 rounded-md px-3 py-2"
-                        >
-                          {TITULO_ALERTA[tipo]}
-                          <Badge variant={n ? "accent" : "secondary"}>{n}</Badge>
-                        </Link>
-                      </li>
-                    );
-                  })}
-                {verSanidad && (
-                  <li>
-                    <Link
-                      href="/produccion/sanidad#retiros"
-                      className="bg-muted/60 hover:bg-muted flex items-center justify-between gap-2 rounded-md px-3 py-2"
-                    >
-                      Vacas en retiro de leche
-                      <Badge variant={enRetiroLeche ? "accent" : "secondary"}>
-                        {enRetiroLeche}
-                      </Badge>
-                    </Link>
-                  </li>
-                )}
-                {AVISOS_TABLERO.map((tipo) => {
-                  const n = avisos.filter((a) => a.tipo === tipo).length;
-                  return (
-                    <li key={tipo}>
+              {conCasos.length > 0 && (
+                <ul className="flex flex-col gap-2 text-sm">
+                  {conCasos.map((a) => (
+                    <li key={a.href}>
                       <Link
-                        href={`/produccion/pendientes#${tipo.toLowerCase()}`}
-                        className="bg-muted/60 hover:bg-muted flex items-center justify-between gap-2 rounded-md px-3 py-2"
+                        href={a.href}
+                        className="bg-muted/60 hover:bg-muted flex items-center justify-between gap-2 rounded-md px-3 py-2.5 font-medium"
                       >
-                        {TITULO_AVISO_PRODUCTIVO[tipo]}
-                        <Badge variant={n ? "accent" : "secondary"}>{n}</Badge>
+                        {a.titulo}
+                        <Badge variant="accent">{formatoNumero(a.n)}</Badge>
                       </Link>
                     </li>
-                  );
-                })}
-              </ul>
+                  ))}
+                </ul>
+              )}
+              {alDia.length > 0 && (
+                <p className="text-muted-foreground mt-3 flex gap-2 text-sm">
+                  <CheckCircle2 className="text-success mt-0.5 size-4 shrink-0" />
+                  <span>
+                    <span className="text-foreground font-medium">Al día: </span>
+                    {alDia.map((a) => a.titulo.toLowerCase()).join(", ")}.
+                  </span>
+                </p>
+              )}
             </CardContent>
           </Card>
 

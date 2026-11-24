@@ -25,6 +25,7 @@ export interface SituacionProductiva {
   numero: string;
   nombre: string | null;
   categoria: CategoriaAnimal;
+  loteId: string | null;
   lote: string | null;
   fechaIngreso: Date;
   ultimoPesaje: Date | null;
@@ -38,6 +39,8 @@ export interface AvisoProductivo {
   tipo: TipoAvisoProductivo;
   animalId: string;
   animal: string;
+  loteId: string | null;
+  lote: string | null;
   detalle: string;
   /** Días desde el último registro (o desde el ingreso / el parto si no hay). */
   dias: number;
@@ -51,7 +54,6 @@ export function avisosProductivos(
   const avisos: AvisoProductivo[] = [];
   for (const a of animales) {
     const animal = a.nombre ? `${a.numero} · ${a.nombre}` : a.numero;
-    const enLote = a.lote ? ` · ${a.lote}` : "";
 
     const cadaPesaje = c.diasPesaje[a.categoria];
     if (cadaPesaje > 0) {
@@ -62,8 +64,10 @@ export function avisosProductivos(
           tipo: "PESAJE_PENDIENTE",
           animalId: a.id,
           animal,
+          loteId: a.loteId,
+          lote: a.lote,
           dias: d,
-          detalle: `${ETIQUETA_CATEGORIA[a.categoria]}${enLote} · ${
+          detalle: `${ETIQUETA_CATEGORIA[a.categoria]} · ${
             a.ultimoPesaje
               ? `último pesaje hace ${plural(d, "día")}`
               : `sin pesajes (ingresó hace ${plural(d, "día")})`
@@ -80,10 +84,12 @@ export function avisosProductivos(
           tipo: "CONTROL_LECHERO",
           animalId: a.id,
           animal,
+          loteId: a.loteId,
+          lote: a.lote,
           dias: d,
           detalle: control
-            ? `Último control hace ${plural(d, "día")}${enLote}`
-            : `Sin control en esta lactancia (parió hace ${plural(d, "día")})${enLote}`,
+            ? `Último control hace ${plural(d, "día")}`
+            : `Sin control en esta lactancia (parió hace ${plural(d, "día")})`,
         });
     }
   }

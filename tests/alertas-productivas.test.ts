@@ -11,6 +11,7 @@ const base: SituacionProductiva = {
   numero: "205",
   nombre: null,
   categoria: "TERNERA",
+  loteId: "l3",
   lote: "Levante",
   fechaIngreso: f("2026-01-01"),
   ultimoPesaje: null,

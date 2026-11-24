@@ -34,10 +34,14 @@ export default async function PaginaPendientes() {
       : "Ninguna categoría tiene frecuencia de pesaje configurada.",
     CONTROL_LECHERO: `Vacas en producción con ${c.diasControlLechero} días o más sin control lechero (por vaca o por su lote).`,
   };
-  const accion: Record<TipoAvisoProductivo, { href: string; texto: string }> = {
-    PESAJE_PENDIENTE: { href: "/produccion/pesajes/lote", texto: "Pesar un lote" },
-    CONTROL_LECHERO: { href: "/produccion/ordenos/control", texto: "Registrar control" },
-  };
+  // Se pesa y se ordeña por lote: la lista va agrupada por lote, con su acción.
+  const accion = (tipo: TipoAvisoProductivo, loteId: string | null) =>
+    tipo === "PESAJE_PENDIENTE"
+      ? {
+          href: loteId ? `/produccion/pesajes/lote?lote=${loteId}` : "/produccion/pesajes/nuevo",
+          texto: loteId ? "Pesar lote" : "Pesar",
+        }
+      : { href: "/produccion/ordenos/control", texto: "Registrar control" };
   return (
     <>
       <EncabezadoPagina
@@ -48,6 +52,20 @@ export default async function PaginaPendientes() {
       <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
         {ORDEN.map((tipo) => {
           const lista = avisos.filter((a) => a.tipo === tipo);
+          const grupos = new Map<
+            string,
+            { loteId: string | null; lote: string; avisos: typeof lista }
+          >();
+          for (const a of lista) {
+            const clave = a.loteId ?? "-";
+            const g = grupos.get(clave) ?? {
+              loteId: a.loteId,
+              lote: a.lote ?? "Sin lote",
+              avisos: [],
+            };
+            g.avisos.push(a);
+            grupos.set(clave, g);
+          }
           const Icono = tipo === "PESAJE_PENDIENTE" ? Scale : Milk;
           return (
             <Card key={tipo} id={tipo.toLowerCase()} className="scroll-mt-20">
@@ -62,34 +80,50 @@ export default async function PaginaPendientes() {
                   </Badge>
                 </CardTitle>
                 <CardDescription>{descripcion[tipo]}</CardDescription>
-                {registrar && lista.length > 0 && (
-                  <Button asChild variant="outline" size="sm" className="mt-2 self-start">
-                    <Link href={accion[tipo].href}>{accion[tipo].texto}</Link>
-                  </Button>
-                )}
               </CardHeader>
               <CardContent className="px-0">
                 {lista.length === 0 ? (
                   <p className="text-muted-foreground px-6 text-sm">Todo al día.</p>
                 ) : (
-                  <ul className="divide-y border-t">
-                    {lista.map((a) => (
-                      <li key={a.animalId}>
-                        <Link
-                          href={`/animales/${a.animalId}`}
-                          className="hover:bg-muted/40 flex items-center gap-3 px-6 py-2.5"
-                        >
-                          <span className="flex min-w-0 flex-1 flex-col">
-                            <span className="font-semibold">{a.animal}</span>
-                            <span className="text-muted-foreground truncate text-xs">
-                              {a.detalle}
+                  <div className="border-t">
+                    {[...grupos.values()].map((g) => (
+                      <section key={g.loteId ?? "-"} aria-label={g.lote}>
+                        <div className="bg-muted/50 flex items-center justify-between gap-2 px-6 py-2">
+                          <span className="text-sm font-semibold">
+                            {g.lote}{" "}
+                            <span className="text-muted-foreground font-normal">
+                              · {formatoNumero(g.avisos.length)}
                             </span>
                           </span>
-                          <ChevronRight className="text-muted-foreground size-4" />
-                        </Link>
-                      </li>
+                          {registrar && (
+                            <Button asChild variant="outline" size="sm">
+                              <Link href={accion(tipo, g.loteId).href}>
+                                {accion(tipo, g.loteId).texto}
+                              </Link>
+                            </Button>
+                          )}
+                        </div>
+                        <ul className="divide-y">
+                          {g.avisos.map((a) => (
+                            <li key={a.animalId}>
+                              <Link
+                                href={`/animales/${a.animalId}`}
+                                className="hover:bg-muted/40 flex items-center gap-3 px-6 py-2.5"
+                              >
+                                <span className="flex min-w-0 flex-1 flex-col">
+                                  <span className="font-semibold">{a.animal}</span>
+                                  <span className="text-muted-foreground truncate text-xs">
+                                    {a.detalle}
+                                  </span>
+                                </span>
+                                <ChevronRight className="text-muted-foreground size-4" />
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
                     ))}
-                  </ul>
+                  </div>
                 )}
               </CardContent>
             </Card>
